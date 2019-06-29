@@ -228,6 +228,7 @@ void Init_Load_Parameter()
 #  endif
    ReadPara->Add( "ELBDM_TAYLOR3_COEFF",        &ELBDM_TAYLOR3_COEFF,             1.0/6.0,         NoMin_double,  NoMax_double   );
    ReadPara->Add( "ELBDM_TAYLOR3_AUTO",         &ELBDM_TAYLOR3_AUTO,              true,            Useless_bool,  Useless_bool   );
+   ReadPara->Add( "ELBDM_REMOVE_MOTION_CM",     &ELBDM_REMOVE_MOTION_CM,          ELBDM_REMOVE_MOTION_CM_NONE, 0, 2              );
 #  endif // #if ( MODEL == ELBDM )
 
 
@@ -271,6 +272,7 @@ void Init_Load_Parameter()
    ReadPara->Add( "OPT__GRA_P5_GRADIENT",       &OPT__GRA_P5_GRADIENT,            false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "OPT__GRAVITY_TYPE",          &OPT__GRAVITY_TYPE,              -1,               1,             3              );
    ReadPara->Add( "OPT__EXTERNAL_POT",          &OPT__EXTERNAL_POT,               false,           Useless_bool,  Useless_bool   );
+   ReadPara->Add( "OPT__GRAVITY_EXTRA_MASS",    &OPT__GRAVITY_EXTRA_MASS,         false,           Useless_bool,  Useless_bool   );
 #  endif // #ifdef GRAVITY
 
 

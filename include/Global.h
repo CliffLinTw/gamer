@@ -114,6 +114,7 @@ extern double           ELBDM_TAYLOR3_COEFF, ELBDM_MASS, ELBDM_PLANCK_CONST, ELB
 #ifdef QUARTIC_SELF_INTERACTION
 extern double           ELBDM_LAMBDA;
 #endif
+extern ELBDMRemoveMotionCM_t ELBDM_REMOVE_MOTION_CM;
 
 #else
 #  error : ERROR : unsupported MODEL !!
@@ -133,7 +134,7 @@ extern double     GFUNC_COEFF0;
 extern double     DT__GRAVITY;
 extern double     NEWTON_G;
 extern int        POT_GPU_NPGROUP;
-extern bool       OPT__OUTPUT_POT, OPT__GRA_P5_GRADIENT, OPT__EXTERNAL_POT;
+extern bool       OPT__OUTPUT_POT, OPT__GRA_P5_GRADIENT, OPT__EXTERNAL_POT, OPT__GRAVITY_EXTRA_MASS;
 extern double     SOR_OMEGA;
 extern int        SOR_MAX_ITER, SOR_MIN_ITER;
 extern double     MG_TOLERATED_ERROR;

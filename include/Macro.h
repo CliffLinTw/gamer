@@ -245,6 +245,7 @@
 
 #elif ( MODEL == ELBDM )
 // field indices of fluid[] --> element of [0 ... NCOMP_FLUID-1]
+// --> must NOT modify their values
 #  define  DENS               0
 #  define  REAL               1
 #  define  IMAG               2
@@ -693,9 +694,10 @@
 #define MIN( a, b )     (  ( (a) < (b) ) ? (a) : (b)  )
 
 
-// square/cube function
-#define SQR(  a )       ( (a)*(a)     )
-#define CUBE( a )       ( (a)*(a)*(a) )
+// power functions
+#define SQR(  a )       ( (a)*(a)         )
+#define CUBE( a )       ( (a)*(a)*(a)     )
+#define POW4( a )       ( (a)*(a)*(a)*(a) )
 
 
 // 3D to 1D array indices transformation

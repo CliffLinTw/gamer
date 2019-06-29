@@ -171,6 +171,10 @@ void Aux_Check_Parameter()
 
 #  if ( MODEL != HYDRO )
    for (int f=0; f<6; f++)
+      if ( OPT__BC_FLU[f] == BC_FLU_OUTFLOW )
+         Aux_Error( ERROR_INFO, "outflow boundary condition (OPT__BC_FLU=2) only works with HYDRO !!\n" );
+
+   for (int f=0; f<6; f++)
       if ( OPT__BC_FLU[f] == BC_FLU_REFLECTING )
          Aux_Error( ERROR_INFO, "reflecting boundary condition (OPT__BC_FLU=3) only works with HYDRO !!\n" );
 #  endif
@@ -806,6 +810,14 @@ void Aux_Check_Parameter()
       Aux_Message( stderr, "WARNING : MIN_DENS == 0.0 could be dangerous and is mainly for debugging only !!\n" );
    else if ( MPI_Rank == 0 )
       Aux_Message( stderr, "WARNING : MIN_DENS (%13.7e) is on --> please ensure that this value is reasonable !!\n", MIN_DENS );
+
+   if ( ELBDM_REMOVE_MOTION_CM != ELBDM_REMOVE_MOTION_CM_NONE  &&  !OPT__CK_CONSERVATION )
+      Aux_Error( ERROR_INFO, "\"%s\" must work with \"%s\" !!\n", "ELBDM_REMOVE_MOTION_CM", "OPT__CK_CONSERVATION" );
+
+#  ifdef BITWISE_REPRODUCIBILITY
+   if ( ELBDM_REMOVE_MOTION_CM != ELBDM_REMOVE_MOTION_CM_NONE )
+      Aux_Error( ERROR_INFO, "\"%s\" does NOT support \"%s\" !!\n", "ELBDM_REMOVE_MOTION_CM", "BITWISE_REPRODUCIBILITY" );
+#  endif
 
 
 // warnings

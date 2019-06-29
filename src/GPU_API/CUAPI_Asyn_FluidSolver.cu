@@ -59,15 +59,17 @@ void CUFLU_FluidSolver_CTU(
 #warning : WAIT MHD !!!
 
 #elif ( MODEL == ELBDM )
-__global__ void CUFLU_ELBDMSolver( real g_Fluid_In [][FLU_NIN ][ FLU_NXT*FLU_NXT*FLU_NXT ],
-                                   real g_Fluid_Out[][FLU_NOUT][ PS2*PS2*PS2 ],
-                                   real g_Flux     [][9][NFLUX_TOTAL][ PS2*PS2 ],
+__global__ void CUFLU_ELBDMSolver( real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
+                                   real g_Fluid_Out[][FLU_NOUT][ CUBE(PS2) ],
+                                   real g_Flux     [][9][NFLUX_TOTAL][ SQR(PS2) ],
                                    const real dt, const real _dh, const real Eta, const bool StoreFlux,
                                    const real Taylor3_Coeff, const bool XYZ, const real MinDens );
 
 #else
 #error : ERROR : unsupported MODEL !!
 #endif // MODEL
+
+real ELBDM_SetTaylor3Coeff( const real dt, const real dh, const real Eta );
 
 
 // device pointers
@@ -271,7 +273,7 @@ void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
    {
       Flu_MemSize_In [s] = sizeof(real  )*NPatch_per_Stream[s]*FLU_NIN *CUBE(FLU_NXT);
       Flu_MemSize_Out[s] = sizeof(real  )*NPatch_per_Stream[s]*FLU_NOUT*CUBE(PS2);
-      Flux_MemSize   [s] = sizeof(real  )*NPatch_per_Stream[s]*NFLUX_TOTAL*9*PS2*PS2;
+      Flux_MemSize   [s] = sizeof(real  )*NPatch_per_Stream[s]*NFLUX_TOTAL*9*SQR(PS2);
 #     ifdef UNSPLIT_GRAVITY
       USG_MemSize    [s] = sizeof(real  )*NPatch_per_Stream[s]*CUBE(USG_NXT_F);
       Corner_MemSize [s] = sizeof(double)*NPatch_per_Stream[s]*3;

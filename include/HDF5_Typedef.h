@@ -421,6 +421,7 @@ struct InputPara_t
 #  endif
    double ELBDM_Taylor3_Coeff;
    int    ELBDM_Taylor3_Auto;
+   int    ELBDM_RemoveMotionCM;
 #  endif
 
 // fluid solvers in both HYDRO/MHD/ELBDM
@@ -465,6 +466,7 @@ struct InputPara_t
    int    Opt__GraP5Gradient;
    int    Opt__GravityType;
    int    Opt__ExternalPot;
+   int    Opt__GravityExtraMass;
 #  endif
 
 // Grackle

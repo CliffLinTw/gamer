@@ -1686,6 +1686,7 @@ void Check_InputPara( const char *FileName, const int FormatVersion )
 #  endif
    LoadField( "ELBDM_Taylor3_Coeff",     &RS.ELBDM_Taylor3_Coeff,     SID, TID, NonFatal, &RT.ELBDM_Taylor3_Coeff,      1, NonFatal );
    LoadField( "ELBDM_Taylor3_Auto",      &RS.ELBDM_Taylor3_Auto,      SID, TID, NonFatal, &RT.ELBDM_Taylor3_Auto,       1, NonFatal );
+   LoadField( "ELBDM_RemoveMotionCM",    &RS.ELBDM_RemoveMotionCM,    SID, TID, NonFatal, &RT.ELBDM_RemoveMotionCM,     1, NonFatal );
 #  endif
 
 // fluid solvers in both HYDRO/MHD/ELBDM
@@ -1729,6 +1730,7 @@ void Check_InputPara( const char *FileName, const int FormatVersion )
    LoadField( "Opt__GraP5Gradient",      &RS.Opt__GraP5Gradient,      SID, TID, NonFatal, &RT.Opt__GraP5Gradient,       1, NonFatal );
    LoadField( "Opt__GravityType",        &RS.Opt__GravityType,        SID, TID, NonFatal, &RT.Opt__GravityType,         1, NonFatal );
    LoadField( "Opt__ExternalPot",        &RS.Opt__ExternalPot,        SID, TID, NonFatal, &RT.Opt__ExternalPot,         1, NonFatal );
+   LoadField( "Opt__GravityExtraMass",   &RS.Opt__GravityExtraMass,   SID, TID, NonFatal, &RT.Opt__GravityExtraMass,    1, NonFatal );
 #  endif
 
 // Grackle

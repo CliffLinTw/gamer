@@ -1,0 +1,21 @@
+#!/bin/bash
+#PBS -N JobLabel
+#PBS -M cliff200905@gmail.com
+#PBS -m abe
+#PBS -k oe
+#PBS -q workq
+#PBS -l nodes=1:ppn=6
+#PBS -l walltime=6:00:00
+
+cd $PBS_O_WORKDIR
+
+# InfiniBand-QDR (recommended)
+# (1) pure MPI
+#mpirun -np 6 -npernode 6 -hostfile $PBS_NODEFILE -bind-to-socket ./a.out 1>>log 2>&1
+
+# (2) hybrid Openmp/MPI for GAMER with OMP_NTHREAD=3
+mpirun -np 2 -npernode 2 -hostfile $PBS_NODEFILE -bind-to-socket ./gamer 1>>log 2>&1
+
+# To switch to Gigabit Ethernet, replace "mpirun" by "mpirun --mca pml ob1 --mca btl ^openib"
+
+

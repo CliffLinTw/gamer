@@ -1,9 +1,9 @@
 #include "GAMER.h"
 
-void InterpolateGhostZone( const int lv, const int PID, real IntData[], const int SibID, const double PrepTime,
-                           const int GhostSize, const IntScheme_t IntScheme, const int NTSib[], int *TSib[],
-                           const int TVar, const int NVar_Tot, const int NVar_Flu, const int TFluVarIdxList[],
-                           const int NVar_Der, const int TDerVarList[], const bool IntPhase,
+void InterpolateGhostZone( const int lv, const int PID, real IntData[], real IntData_IntTime[], const int SibID,
+                           const double PrepTime, const int GhostSize, const IntScheme_t IntScheme,
+                           const int NTSib[], int *TSib[], const int TVar, const int NVar_Tot, const int NVar_Flu,
+                           const int TFluVarIdxList[], const int NVar_Der, const int TDerVarList[], const bool IntPhase,
                            const OptFluBC_t FluBC[], const OptPotBC_t PotBC, const int BC_Face[], const real MinPres,
                            const bool DE_Consistency );
 static void SetTargetSibling( int NTSib[], int *TSib[] );
@@ -178,6 +178,12 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
 #     if ( MODEL == ELBDM )
       if (  !(TVar & _REAL)  ||  !(TVar & _IMAG)  )
       Aux_Error( ERROR_INFO, "real and/or imag parts are not found for phase interpolation in ELBDM !!\n" );
+
+//    we have assumed in InterpolateGhostZone() that when adopting IntPhase this function will NOT prepare
+//    anything other than wave function and, optionally, density
+//    --> e.g., one cannot prepare wave function and potential at the same time when enabling IntPhase
+      if (  TVar & ~( _REAL | _IMAG | _DENS )  )
+      Aux_Error( ERROR_INFO, "unsupported parameter %s = %d for IntPhase !!\n", "TVar", TVar );
 #     else
       Aux_Error( ERROR_INFO, "\"interpolation on phase\" is useful only in ELBDM !!\n" );
 #     endif
@@ -192,6 +198,9 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
          Aux_Error( ERROR_INFO, "unsupported parameter FluBC[%d] = %d !!\n", f, FluBC[f] );
 
 #     if ( MODEL != HYDRO )
+      if ( FluBC[f] == BC_FLU_OUTFLOW )
+         Aux_Error( ERROR_INFO, "outflow boundary condition (OPT__BC_FLU=2) only works with HYDRO !!\n" );
+
       if ( FluBC[f] == BC_FLU_REFLECTING )
          Aux_Error( ERROR_INFO, "reflecting boundary condition (OPT__BC_FLU=3) only works with HYDRO !!\n" );
 #     endif
@@ -287,7 +296,7 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
 // TFluVarIdxList : List recording the target fluid and passive variable indices ( = [0 ... NCOMP_TOTAL-1] )
    int NTSib[26], *TSib[26], NVar_Flu, NVar_Der, NVar_Tot, TFluVarIdxList[NCOMP_TOTAL];
 
-// set up the target sibling indices for the function "InterpolateGhostZone"
+// set up the target sibling indices for InterpolateGhostZone()
    SetTargetSibling( NTSib, TSib );
 
 // determine the components to be prepared
@@ -621,6 +630,16 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
 
 //    IntData: array to store the interpolation results (allocate with the maximum required size)
       real *IntData = new real [ NVar_Tot*PS2*PS2*GhostSize_Padded ];
+
+//    IntData_IntTime: for temporal interpolation on density and phase in ELBDM
+#     if ( MODEL == ELBDM )
+      real *IntData_IntTime = (  IntPhase  &&  OPT__INT_TIME  &&  lv > 0  &&
+                                !Mis_CompareRealValue( PrepTime, amr->FluSgTime[lv-1][  amr->FluSg[lv-1]], NULL, false )  &&
+                                !Mis_CompareRealValue( PrepTime, amr->FluSgTime[lv-1][1-amr->FluSg[lv-1]], NULL, false )  )
+                              ? new real [ 2*PS2*PS2*GhostSize_Padded ] : NULL;
+#     else
+      real *IntData_IntTime = NULL;
+#     endif
 
 
 //    assign particle mass onto grids
@@ -1157,7 +1176,7 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
 
 
 //             perform interpolation and store the results in IntData
-               InterpolateGhostZone( lv-1, FaSibPID, IntData, Side, PrepTime, GhostSize, IntScheme, NTSib, TSib,
+               InterpolateGhostZone( lv-1, FaSibPID, IntData, IntData_IntTime, Side, PrepTime, GhostSize, IntScheme, NTSib, TSib,
                                      TVar, NVar_Tot, NVar_Flu, TFluVarIdxList, NVar_Der, TDerVarList, IntPhase,
                                      FluBC, PotBC, BC_Face, MinPres, DE_Consistency );
 
@@ -1223,12 +1242,12 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
                {
                   switch ( FluBC[ BC_Face[BC_Sibling] ] )
                   {
+#                    if ( MODEL == HYDRO )
                      case BC_FLU_OUTFLOW:
-                        Flu_BoundaryCondition_Outflow     ( Array_Ptr, BC_Face[BC_Sibling], NVar_Flu+NVar_Der, GhostSize,
+                        Hydro_BoundaryCondition_Outflow   ( Array_Ptr, BC_Face[BC_Sibling], NVar_Flu+NVar_Der, GhostSize,
                                                             PGSize1D, PGSize1D, PGSize1D, BC_Idx_Start, BC_Idx_End );
                      break;
 
-#                    if ( MODEL == HYDRO  ||  MODEL == MHD )
                      case BC_FLU_REFLECTING:
                         Hydro_BoundaryCondition_Reflecting( Array_Ptr, BC_Face[BC_Sibling], NVar_Flu,          GhostSize,
                                                             PGSize1D, PGSize1D, PGSize1D, BC_Idx_Start, BC_Idx_End,
@@ -1582,6 +1601,7 @@ void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array
 
       if ( PrepUnit == UNIT_PATCH )    delete [] Array;
       delete [] IntData;
+      delete [] IntData_IntTime;
 
    } // end of OpenMP parallel region
 

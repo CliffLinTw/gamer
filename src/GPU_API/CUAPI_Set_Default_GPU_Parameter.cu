@@ -77,9 +77,9 @@ __global__ void CUPOT_dtSolver_HydroGravity( real g_dt_Array[],
 #warning : WAIT MHD !!!
 
 #elif ( MODEL == ELBDM )
-__global__ void CUFLU_ELBDMSolver( real g_Fluid_In [][FLU_NIN ][ FLU_NXT*FLU_NXT*FLU_NXT ],
-                                   real g_Fluid_Out[][FLU_NOUT][ PS2*PS2*PS2 ],
-                                   real g_Flux     [][9][NFLUX_TOTAL][ PS2*PS2 ],
+__global__ void CUFLU_ELBDMSolver( real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
+                                   real g_Fluid_Out[][FLU_NOUT][ CUBE(PS2) ],
+                                   real g_Flux     [][9][NFLUX_TOTAL][ SQR(PS2) ],
                                    const real dt, const real _dh, const real Eta, const bool StoreFlux,
                                    const real Taylor3_Coeff, const bool XYZ, const real MinDens );
 
@@ -133,11 +133,12 @@ void CUPOT_HydroGravitySolver(
 #warning :: WAIT MHD !!!
 
 #elif ( MODEL == ELBDM )
-__global__ void CUPOT_ELBDMGravitySolver(       real g_Flu_Array[][GRA_NIN][ PS1*PS1*PS1 ],
-                                          const real g_Pot_Array[][ GRA_NXT*GRA_NXT*GRA_NXT ],
-                                          const double g_Corner_Array[][3],
-                                          const real EtaDt, const real dh, const real Lambda, const bool ExtPot,
-                                          const double Time );
+__global__
+void CUPOT_ELBDMGravitySolver(       real   g_Flu_Array[][GRA_NIN][ CUBE(PS1) ],
+                               const real   g_Pot_Array[][ CUBE(GRA_NXT) ],
+                               const double g_Corner_Array[][3],
+                               const real EtaDt, const real dh, const real Lambda,
+                               const bool ExtPot, const double Time );
 
 #else
 #error : ERROR : unsupported MODEL !!

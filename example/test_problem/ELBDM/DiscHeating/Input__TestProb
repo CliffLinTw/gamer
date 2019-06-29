@@ -1,0 +1,16 @@
+# problem-specific runtime parameters
+
+Soliton_Cen_X           0.025
+Soliton_Cen_Y           0.025
+Soliton_Cen_Z           0.025
+Soliton_BulkVel_X       0.0
+Soliton_BulkVel_Y       0.0
+Soliton_BulkVel_Z       0.0
+Disc_Radius             0.0175
+Disc_Decay_Radius       0.00875
+Disc_Mass               6.743 
+Disc_Random_Seed        1002
+R_s                     0.0006589169
+G_Rho_0                 3.06055E-68
+Rotate_File_Prof        profile.txt
+Velocity_Dispersion     0.02   

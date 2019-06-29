@@ -39,6 +39,14 @@ TESTPROB_ID                   0           # test problem ID [0]
                                           #   11: HYDRO Plummer cloud(s) (+GRAVITY & PARTICLE)
                                           #   12: HYDRO gravity (+GRAVITY)
                                           # 1000: ELBDM external potential (+GRAVITY)
+                                          # 1001: ELBDM Jeans instability in the comoving frame (+GRAVITY, +COMOVING)
+                                          # 1002: ELBDM Jeans instability in the physical frame (+GRAVITY)
+                                          # 1003: ELBDM soliton merger (+GRAVITY)
+                                          # 1004: ELBDM self-similar halo (+GRAVITY, +COMOVING)
+                                          # 1005: ELBDM rotating vortex pair
+                                          # 1006: ELBDM vortex pair in linear motion
+                                          # 1007: ELBDM halo extracted from a large-scale structure simulation (+GRAVITY)
+                                          # 1008: ELBDM 1D Gaussian wave packet
 
 
 # code units (in cgs)
@@ -51,12 +59,12 @@ UNIT_D                       -1.0         # mass density unit  (<=0 -> set to UN
 
 
 # boundary conditions
-OPT__BC_FLU_XM                1           # fluid boundary condition at the -x face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_FLU_XP                1           # fluid boundary condition at the +x face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_FLU_YM                1           # fluid boundary condition at the -y face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_FLU_YP                1           # fluid boundary condition at the +y face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_FLU_ZM                1           # fluid boundary condition at the -z face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_FLU_ZP                1           # fluid boundary condition at the +z face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
+OPT__BC_FLU_XM                1           # fluid boundary condition at the -x face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
+OPT__BC_FLU_XP                1           # fluid boundary condition at the +x face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
+OPT__BC_FLU_YM                1           # fluid boundary condition at the -y face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
+OPT__BC_FLU_YP                1           # fluid boundary condition at the +y face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
+OPT__BC_FLU_ZM                1           # fluid boundary condition at the -z face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
+OPT__BC_FLU_ZP                1           # fluid boundary condition at the +z face: (1=periodic, 2=outflow, 3=reflecting, 4=user) ##2/3 for HYDRO ONLY##
 OPT__BC_POT                   1           # gravity boundary condition: (1=periodic, 2=isolated)
 GFUNC_COEFF0                 -1.0         # Green's function coefficient at the origin for the isolated BC (<0=auto) [-1.0]
 
@@ -181,6 +189,8 @@ ELBDM_PLANCK_CONST            1.0         # reduced Planck constant (will be ove
 ELBDM_LAMBDA                  1.0         # quartic self-interaction coefficient [1.0] ##QUARTIC_SELF_INTERACTION ONLY##
 ELBDM_TAYLOR3_COEFF           0.166666667 # 3rd Taylor expansion coefficient [1.0/6.0] ##USELESS if ELBDM_TAYLOR3_AUTO is on##
 ELBDM_TAYLOR3_AUTO            1           # Optimize ELBDM_TAYLOR3_COEFF automatically to minimize the damping at kmax [1]
+ELBDM_REMOVE_MOTION_CM        0           # remove the motion of center-of-mass (must enable OPT__CK_CONSERVATION):
+                                          # (0=off, 1=init, 2=every step) [0]
 
 
 # fluid solvers in all models
@@ -214,6 +224,7 @@ POT_GPU_NPGROUP              -1           # number of patch groups sent into the
 OPT__GRA_P5_GRADIENT          0           # 5-points gradient in the Gravity solver (must have GRA/USG_GHOST_SIZE>=2) [0]
 OPT__GRAVITY_TYPE             1           # gravity source: (1=self-gravity, 2=external gravity, 3=both) ##2/3 for HYDRO ONLY##
 OPT__EXTERNAL_POT             0           # add the external potential (incompatible with OPT__GRAVITY_TYPE==2) [0] ##ELBDM ONLY##
+OPT__GRAVITY_EXTRA_MASS       0           # add extra mass source when computing gravity [0]
 
 
 # initialization

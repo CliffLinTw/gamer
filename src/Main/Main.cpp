@@ -107,6 +107,7 @@ double               ELBDM_MASS, ELBDM_PLANCK_CONST, ELBDM_ETA, MIN_DENS;
 #ifdef QUARTIC_SELF_INTERACTION
 double               ELBDM_LAMBDA;
 #endif
+ELBDMRemoveMotionCM_t ELBDM_REMOVE_MOTION_CM;
 
 #else
 #error : unsupported MODEL !!
@@ -122,7 +123,7 @@ double               GFUNC_COEFF0;
 double               DT__GRAVITY;
 double               NEWTON_G;
 int                  POT_GPU_NPGROUP;
-bool                 OPT__OUTPUT_POT, OPT__GRA_P5_GRADIENT, OPT__EXTERNAL_POT;
+bool                 OPT__OUTPUT_POT, OPT__GRA_P5_GRADIENT, OPT__EXTERNAL_POT, OPT__GRAVITY_EXTRA_MASS;
 double               SOR_OMEGA;
 int                  SOR_MAX_ITER, SOR_MIN_ITER;
 double               MG_TOLERATED_ERROR;
@@ -208,7 +209,7 @@ real (*h_FC_Flux)  [3][NCOMP_TOTAL][ CUBE(N_FC_FLUX)   ]          = NULL;
 #endif // FLU_SCHEME
 
 #ifdef GRAVITY
-// (3-2) gravity solver
+// (3-2) poisson and gravity solvers
 real (*h_Rho_Array_P    [2])[RHO_NXT][RHO_NXT][RHO_NXT]           = { NULL, NULL };
 real (*h_Pot_Array_P_In [2])[POT_NXT][POT_NXT][POT_NXT]           = { NULL, NULL };
 real (*h_Pot_Array_P_Out[2])[GRA_NXT][GRA_NXT][GRA_NXT]           = { NULL, NULL };
@@ -250,7 +251,7 @@ real (*d_Flu_Array_F_Out)[FLU_NOUT][ CUBE(PS2) ]                  = NULL;
 real (*d_Flux_Array)[9][NFLUX_TOTAL][ SQR(PS2) ]                  = NULL;
 double (*d_Corner_Array_F)[3]                                     = NULL;
 #ifdef DUAL_ENERGY
-char (*d_DE_Array_F_Out)[ PS2*PS2*PS2 ]                           = NULL;
+char (*d_DE_Array_F_Out)[ CUBE(PS2) ]                             = NULL;
 #endif
 #if ( MODEL == HYDRO )
 #if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU )
@@ -373,6 +374,12 @@ int main( int argc, char *argv[] )
 
    Aux_Check();
 
+#  if ( MODEL == ELBDM )
+   if (  ( ELBDM_REMOVE_MOTION_CM == ELBDM_REMOVE_MOTION_CM_INIT && (OPT__INIT != INIT_BY_RESTART || OPT__RESTART_RESET) )  ||
+           ELBDM_REMOVE_MOTION_CM == ELBDM_REMOVE_MOTION_CM_EVERY_STEP  )
+      ELBDM_RemoveMotionCM();
+#  endif
+
 #  ifdef TIMING
    Aux_ResetTimer();
 #  endif
@@ -437,6 +444,11 @@ int main( int argc, char *argv[] )
 #     endif
 
       TIMING_FUNC(   Aux_Check(),                     Timer_Main[4]   );
+
+#     if ( MODEL == ELBDM )
+      if ( ELBDM_REMOVE_MOTION_CM == ELBDM_REMOVE_MOTION_CM_EVERY_STEP )
+      TIMING_FUNC(   ELBDM_RemoveMotionCM(),          Timer_Main[4]   );
+#     endif
 //    ---------------------------------------------------------------------------------------------------
 
 

@@ -116,9 +116,9 @@ void Flu_BoundaryCondition_User( real *Array, const int NVar_Flu, const int Arra
                                  const int ArraySizeZ, const int Idx_Start[], const int Idx_End[],
                                  const int TFluVarIdxList[], const double Time, const double dh, const double *Corner,
                                  const int TVar, const int lv );
-void Flu_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar, const int GhostSize,
-                                    const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
-                                    const int Idx_Start[], const int Idx_End[] );
+void Hydro_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar, const int GhostSize,
+                                      const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                      const int Idx_Start[], const int Idx_End[] );
 void Flu_CorrAfterAllSync();
 #ifndef SERIAL
 void Flu_AllocateFluxArray_Buffer( const int lv );
@@ -333,6 +333,8 @@ void Poi_Prepare_Pot( const int lv, const double PrepTime, real h_Pot_Array_P_In
                       const int NPG, const int *PID0_List );
 void Poi_Prepare_Rho( const int lv, const double PrepTime, real h_Rho_Array_P[][RHO_NXT][RHO_NXT][RHO_NXT],
                       const int NPG, const int *PID0_List );
+real Poi_AddExtraMassForGravity( const double x, const double y, const double z, const double Time,
+                                 const int lv, double AuxArray[] );
 #ifdef STORE_POT_GHOST
 void Poi_StorePotWithGhostZone( const int lv, const int PotSg, const bool AllPatch );
 #endif
@@ -340,8 +342,8 @@ void Poi_StorePotWithGhostZone( const int lv, const int PotSg, const bool AllPat
 
 
 // Tables
-int TABLE_01( const int SibIndex, const char dim, const int w0, const int w1, const int w2 );
-int TABLE_02( const int LocalID, const char dim, const int w0, const int w1 );
+template <typename T> T TABLE_01( const int SibIndex, const char dim, const T w0, const T w1, const T w2 );
+template <typename T> T TABLE_02( const int LocalID, const char dim, const T w0, const T w1 );
 int TABLE_03( const int SibID, const int Count );
 int TABLE_04( const int SibID );
 int TABLE_05( const int SibID );
@@ -407,7 +409,6 @@ bool Hydro_Flag_Vorticity( const int i, const int j, const int k, const int lv, 
 // ELBDM model
 #elif ( MODEL == ELBDM )
 void   ELBDM_Init_ByFunction_AssignData( const int lv );
-void   ELBDM_Init_ByFile_AssignData( const int lv, real *UM_Data, const int NVar );
 double ELBDM_GetTimeStep_Fluid( const int lv );
 double ELBDM_GetTimeStep_Gravity( const int lv );
 double ELBDM_GetTimeStep_Phase( const int lv );
@@ -415,6 +416,7 @@ bool   ELBDM_Flag_EngyDensity( const int i, const int j, const int k, const real
                                const real Imag_Array[], const double Angle_2pi, const double Eps );
 real   ELBDM_UnwrapPhase( const real Phase_Ref, const real Phase_Wrapped );
 real   ELBDM_SetTaylor3Coeff( const real dt, const real dh, const real Eta );
+void   ELBDM_RemoveMotionCM();
 
 
 #else
