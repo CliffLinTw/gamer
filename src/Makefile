@@ -145,7 +145,7 @@ SIMU_OPTION += -DNLEVEL=10
 
 # maximum number of patches on each AMR level
 # --> must be set in any cases
-SIMU_OPTION += -DMAX_PATCH=1000000
+SIMU_OPTION += -DMAX_PATCH=10000000
 
 # GPU acceleration
 # --> must set GPU_ARCH as well
@@ -213,7 +213,7 @@ SIMU_OPTION += -DRANDOM_NUMBER=RNG_GNU_EXT
 # -------------------------------------------------------------------------------
 # CXX         = icpc                                      # serial compiler
 CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
-#CXX         = CC                                        # cray wrapper script
+##CXX         = CC                                        # cray wrapper script
 CXXFLAG     = -g -O3                                    # general flags
 ##CXXFLAG     = -g -O3 -std=c++11 #-gxx-name=YOUR_G++
 ##CXXFLAG     = -g -fast
@@ -235,18 +235,18 @@ endif
 
 # gnu
 # -------------------------------------------------------------------------------
-# CXX         = g++                                       # serial compiler
+#CXX         = g++                                       # serial compiler
 #CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
 #CXX         = CC                                        # cray wrapper script
-# CXXFLAG     = -g -O3                                    # general flags
+#CXXFLAG     = -g -O3                                    # general flags
 #CXXFLAG     = -g -O3 -std=c++11
 #CXXFLAG     = -g -Ofast
-# CXXFLAG    += -Wall -Wextra                             # warning flags
-# CXXFLAG    += -Wno-unused-variable -Wno-unused-parameter \
+#CXXFLAG    += -Wall -Wextra                             # warning flags3
+#CXXFLAG    += -Wno-unused-variable -Wno-unused-parameter \
                -Wno-maybe-uninitialized -Wno-unused-but-set-variable \
                -Wno-unused-result -Wno-unused-function
-# OPENMPFLAG  = -fopenmp                                  # openmp flag
-# LIB         =                                           # libraries and linker flags
+#OPENMPFLAG  = -fopenmp                                  # openmp flag
+#LIB         =                                           # libraries and linker flags
 
 # for debug only
 #ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
@@ -324,8 +324,10 @@ endif
 
 # NTU-hulk (openmpi-intel-qlc)
 CUDA_PATH    := /opt/gpu/cuda/4.2
-FFTW_PATH    := /opt/math/fftw/2.1.5-intel-openmpi-1.4.3-qlc
-MPI_PATH     := /usr/mpi/intel/openmpi-1.4.3-qlc
+#FFTW_PATH    := /opt/math/fftw/2.1.5-intel-openmpi-1.4.3-qlc
+FFTW_PATH := /opt/math/fftw/2.1.5-intel-openmpi-1.6.0-qlc
+#MPI_PATH     := /usr/mpi/intel/openmpi-1.4.3-qlc
+MPI_PATH := /opt/mpi/openmpi/1.6.0-intel-qlc
 HDF5_PATH    := /opt/hdf5/1.8.20
 #GRACKLE_PATH := /work1/fish/Software/grackle
 #GSL_PATH     := /opt/math/gsl/2.5
@@ -865,6 +867,3 @@ clean :
 	@rm -f $(OBJ_PATH)/*
 	@rm -f $(EXECUTABLE)
 	@rm -f ./*.linkinfo
-
-
-

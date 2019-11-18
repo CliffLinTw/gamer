@@ -24,7 +24,7 @@ real ELBDM_SetTaylor3Coeff( const real dt, const real dh, const real Eta )
 {
 
 // check
-   if ( dt <= 0.0 )  Aux_Error( ERROR_INFO, "dt = %14.7e <= 0.0 !!\n", dt );
+//   if ( dt <= 0.0 )  Aux_Error( ERROR_INFO, "dt = %14.7e <= 0.0 !!\n", dt );
 
 
    const real Alpha   = 0.5*dt/(Eta*dh*dh);

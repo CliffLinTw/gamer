@@ -20,7 +20,7 @@ args=parser.parse_args()
 print( '\nCommand-line arguments:' )
 print( '-------------------------------------------------------------------' )
 for t in range( len(sys.argv) ):
-   print str(sys.argv[t]),
+   print( str(sys.argv[t])),
 print( '' )
 print( '-------------------------------------------------------------------\n' )
 
@@ -31,6 +31,9 @@ didx      = args.didx
 prefix    = args.prefix
 
 field         = 'density'
+#field         = 'psidm_real_part'
+#field         = 'psidm_imaginary_part'
+
 colormap_dens = 'algae'
 center_mode   = 'c'
 dpi           = 150
@@ -40,9 +43,10 @@ ts = yt.load( [ prefix+'/Data_%06d'%idx for idx in range(idx_start, idx_end+1, d
 
 for ds in ts.piter():
 
-   pz_dens = yt.ProjectionPlot( ds, 'z', field, center=center_mode )
+   pz_dens = yt.ProjectionPlot( ds, 'z', field, center=center_mode, width=(20,"kpc") )
+#   pz_dens.set_zlim( field, 1.0e-6, 1.0 )
 
-   pz_dens.set_zlim( field, 1.0e-6, 2.0e-2 )
+#   pz_dens.set_zlim( field, 1.0e-6, 2.0e-2 )
    pz_dens.set_cmap( field, colormap_dens )
    pz_dens.annotate_timestamp( time_unit='Gyr', corner='upper_right' )
 

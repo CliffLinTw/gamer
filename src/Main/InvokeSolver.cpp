@@ -7,6 +7,7 @@ static void Solver( const Solver_t TSolver, const int lv, const double TimeNew, 
 static void Closing_Step( const Solver_t TSolver, const int lv, const int SaveSg_Flu, const int SaveSg_Pot, const int NPG,
                           const int *PID0_List, const int ArrayID, const double dt );
 
+extern bool FixDM;
 extern Timer_t *Timer_Pre         [NLEVEL][NSOLVER];
 extern Timer_t *Timer_Sol         [NLEVEL][NSOLVER];
 extern Timer_t *Timer_Clo         [NLEVEL][NSOLVER];
@@ -391,9 +392,9 @@ void Preparation_Step( const Solver_t TSolver, const int lv, const double TimeNe
 //                Poi_Coeff : Coefficient in front of the RHS in the Poisson eq.
 //-------------------------------------------------------------------------------------------------------
 void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld,
-             const int NPG, const int ArrayID, const double dt, const double Poi_Coeff )
+             const int NPG, const int ArrayID, const double dt_in, const double Poi_Coeff )
 {
-
+   const double dt = ( FixDM ) ? 0.0 : dt_in;
    const double dh = amr->dh[lv];
 
 #  ifdef GRAVITY

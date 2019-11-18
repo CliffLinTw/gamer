@@ -14,6 +14,9 @@ static double Disc_Mass;
 static int    Disc_RSeed;
 static double G_Rho_0;
 static double R_s;
+static double R_c;
+static double m_phi;
+
 static double VelDisp;
 
 static RandomNumber_t *RNG = NULL;
@@ -135,13 +138,15 @@ void SetParameter()
    ReadPara->Add( "Soliton_BulkVel_X",    &Soliton_BulkVel[0],    0.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Soliton_BulkVel_Y",    &Soliton_BulkVel[1],    0.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Soliton_BulkVel_Z",    &Soliton_BulkVel[2],    0.0,           0.0,              NoMax_double      );
-   ReadPara->Add( "Disc_Radius",          &Disc_Radius   ,        1.0,           0.0,              NoMax_double      );
-   ReadPara->Add( "Disc_Decay_Radius",    &Disc_Decay_R  ,        1.0,           0.0,              NoMax_double      );
-   ReadPara->Add( "Disc_Mass",            &Disc_Mass     ,        1.0,           0.0,              NoMax_double      );
-   ReadPara->Add( "Disc_Random_Seed",     &Disc_RSeed    ,        123,           0  ,              NoMax_int         );
-   ReadPara->Add( "R_s",                  &R_s           ,        0.0006589169,  0.0 ,             NoMax_double      );
-   ReadPara->Add( "G_Rho_0",              &G_Rho_0       ,        3.06055E-68,   0.0 ,             NoMax_double      );
-   ReadPara->Add( "Velocity_Dispersion",  &VelDisp       ,        0.0,           0.0 ,             0.577             );
+   ReadPara->Add( "Disc_Radius",          &Disc_Radius,           1.0,           0.0,              NoMax_double      );
+   ReadPara->Add( "Disc_Decay_Radius",    &Disc_Decay_R,          1.0,           0.0,              NoMax_double      );
+   ReadPara->Add( "Disc_Mass",            &Disc_Mass,             1.0,           0.0,              NoMax_double      );
+   ReadPara->Add( "Disc_Random_Seed",     &Disc_RSeed,            123,           0,                NoMax_int         );
+   ReadPara->Add( "R_s",                  &R_s,                   6399.0352,     0.0,              NoMax_double      );
+   ReadPara->Add( "G_Rho_0",              &G_Rho_0,               5.9999761e-10, 0.0,              NoMax_double      );
+   ReadPara->Add( "R_c",                  &R_c,                   922.48366,     0.0,              NoMax_double      );
+   ReadPara->Add( "m_phi",                &m_phi,                 8.0,           0.0,              NoMax_double      );
+   ReadPara->Add( "Velocity_Dispersion",  &VelDisp,               0.0,           0.0,              1.0               );
 ///   ReadPara->Add( "var_str",            var_str,               Useless_str,   Useless_str,      Useless_str       );
 
    ReadPara->Read( FileName );
@@ -191,8 +196,10 @@ void SetParameter()
       Aux_Message( stdout, "  Disc Radius                 = %13.7e\n",                     Disc_Radius        );
       Aux_Message( stdout, "  Disc Mass                   = %13.7e\n",                     Disc_Mass          );
       Aux_Message( stdout, "  Disc Random Seed            = %d\n",                         Disc_RSeed         );
-      Aux_Message( stdout, "  R s                         = %d\n",                         R_s                );
-      Aux_Message( stdout, "  G Rho_0                     = %d\n",                         G_Rho_0            );
+      Aux_Message( stdout, "  R s                         = %13.7e\n",                     R_s                );
+      Aux_Message( stdout, "  G Rho_0                     = %13.7e\n",                     G_Rho_0            );
+      Aux_Message( stdout, "  R_c                         = %13.7e\n",                     R_c                );
+      Aux_Message( stdout, "  m_phi                       = %13.7e\n",                     m_phi              );
       Aux_Message( stdout, "  Velocity Dispersion         = %13.7e\n",                     VelDisp            );
 //      Aux_Message( stdout, "  var_str                   = %s\n",     var_str );
       Aux_Message( stdout, "=============================================================================\n" );
@@ -373,18 +380,6 @@ void Par_Init_ByFunction_AfterAcceleration(const long NPar_ThisRank, const long 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
-
-// synchronize all particles to the physical time on the base level
-   for (long p=0; p<NPar_ThisRank; p++)   ParTime[p] = Time[0];
-
-
-// initialize the particle creation time by an arbitrary negative value since it is
-// only used for star particles created during evolution and is useless during initialization
-#  ifdef STAR_FORMATION
-   for (int p=0; p<NPar_ThisRank; p++)    AllAttribute[Idx_ParCreTime][p] = -1.0;
-#  endif
-
-
 // set other particle attributes
 // ============================================================================================================
    real *ParPos[3] = { ParPosX, ParPosY, ParPosZ };
@@ -394,26 +389,30 @@ void Par_Init_ByFunction_AfterAcceleration(const long NPar_ThisRank, const long 
 
    real ParRadius[2];
    real NormParRadius[2];
-   real V_acc;
+   double V_acc;
    double Ran[3];
 
    //   initialize the RNG
    RNG = new RandomNumber_t( 1 );
    RNG->SetSeed( 0, Disc_RSeed+1 );
 
+   double ZeroR = 0;
+   double ZeroRVec[3], VD_Vec[3];
+
    for (long p=0; p<NPar_ThisRank; p++)
    {
+      if ( ParMass[p] < 0.0 )  continue;
       ParRadius[0] =  ParPos[0][p]-Soliton_Cen[0];
       ParRadius[1] =  ParPos[1][p]-Soliton_Cen[1];
       NormParRadius[0] =   ParRadius[0]/ sqrt( SQR(ParRadius[0]) + SQR(ParRadius[1]) );
       NormParRadius[1] =   ParRadius[1]/ sqrt( SQR(ParRadius[0]) + SQR(ParRadius[1]) );
 
       V_acc = sqrt(fabs(ParRadius[0]*ParAcc[0][p]+ParRadius[1]*ParAcc[1][p]));
-      Ran[0] = RNG->GetValue( 0, 0.0, 1.0)-0.5;
-      Ran[1] = RNG->GetValue( 0, 0.0, 1.0)-0.5;
-      Ran[2] = RNG->GetValue( 0, 0.0, 1.0)-0.5;
-      ParVel[0][p] = - V_acc*NormParRadius[1]+Soliton_BulkVel[0]+VelDisp*V_acc*Ran[0];
-      ParVel[1][p] =   V_acc*NormParRadius[0]+Soliton_BulkVel[1]+VelDisp*V_acc*Ran[1];
+
+      RanVec2_FixRadius( ZeroR, ZeroRVec, VD_Vec, VelDisp*V_acc );
+
+      ParVel[0][p] = - V_acc*NormParRadius[1]+Soliton_BulkVel[0]+VD_Vec[0];
+      ParVel[1][p] =   V_acc*NormParRadius[0]+Soliton_BulkVel[1]+VD_Vec[1];
       ParVel[2][p] =   Soliton_BulkVel[2];
    }
 // ============================================================================================================
@@ -512,7 +511,7 @@ void BC_DiscHeating( real fluid[], const double x, const double y, const double 
 //
 // Parameter   :
 //
-// Return      :  
+// Return      :
 //-------------------------------------------------------------------------------------------------------
 
 void Init_ExtPot()
@@ -520,8 +519,11 @@ void Init_ExtPot()
    ExtPot_AuxArray[0] = Soliton_Cen[0];
    ExtPot_AuxArray[1] = Soliton_Cen[1];
    ExtPot_AuxArray[2] = Soliton_Cen[2];
-   ExtPot_AuxArray[3] = 0.0006589169;
-   ExtPot_AuxArray[4] = 0.0;
+   ExtPot_AuxArray[3] = G_Rho_0;
+   ExtPot_AuxArray[4] = R_s;
+   ExtPot_AuxArray[5] = 0.0;
+   ExtPot_AuxArray[6] = R_c;
+   ExtPot_AuxArray[7] = 5.0;
 ///   ExtPot_AuxArray[4] = 3.06055E-68;
 //   ExtPot_AuxArray[3] = R_s;
 //   ExtPot_AuxArray[4] = G_Rho_0;
@@ -587,7 +589,7 @@ void Init_User_Disc()
   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating particle acceleration" );
 #  endif
 
-  Par_Init_ByFunction_AfterAcceleration_Ptr( amr->Par->NPar_Active, amr->Par->NPar_Active_AllRank,
+  Par_Init_ByFunction_AfterAcceleration_Ptr( amr->Par->NPar_AcPlusInac, amr->Par->NPar_Active_AllRank,
                                   amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
                                   amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ,
                                   amr->Par->AccX, amr->Par->AccY, amr->Par->AccZ,

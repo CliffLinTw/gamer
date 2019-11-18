@@ -1,6 +1,7 @@
 import argparse
 import sys
 import yt
+import numpy as np
 
 # load the command-line parameters
 parser = argparse.ArgumentParser( description='Density profile' )
@@ -20,7 +21,7 @@ args=parser.parse_args()
 print( '\nCommand-line arguments:' )
 print( '-------------------------------------------------------------------' )
 for t in range( len(sys.argv) ):
-   print str(sys.argv[t]),
+   print( str(sys.argv[t])),
 print( '' )
 print( '-------------------------------------------------------------------\n' )
 
@@ -30,21 +31,31 @@ idx_end   = args.idx_end
 didx      = args.didx
 prefix    = args.prefix
 
-field       = 'density'
+field       = 'Dens'
+#field       = 'density'
 center_mode = 'max'
 dpi         = 150
-nbin        = 32
+nbin        = 256
 
 yt.enable_parallelism()
 ts = yt.load( [ prefix+'/Data_%06d'%idx for idx in range(idx_start, idx_end+1, didx) ] )
 
 for ds in ts.piter():
+#  sp = ds.sphere( center_mode, 0.5*ds.domain_width.to_value().max() )
+   sp = ds.sphere( center_mode, 0.5*0.18 )
 
-   sp = ds.sphere( center_mode, 0.5*ds.domain_width.to_value().max() )
-
-   prof = yt.ProfilePlot( sp, 'radius', field, weight_field='cell_volume', n_bins=nbin )
+   prof = yt.ProfilePlot( sp, 'radius', field, weight_field='cell_volume', n_bins=nbin, x_log=True, y_log={field:True} )
    prof.set_unit( 'radius', 'kpc' )
-   prof.set_xlim( 5.0e-1, 1.0e2 )
+   prof.set_xlim( 3.0e-1, 1.0e+2 )
 #  prof.set_ylim( field, 1.0e-6, 1.0e0 )
-
+   prof.set_unit( field, 'g/cm**3' )
    prof.save( mpl_kwargs={"dpi":dpi} )
+   A = prof.profiles[0].x.d
+   B = prof.profiles[0][field].d
+   C = [A,B]
+   Data = np.asarray(C)
+   np.save("ProfileDataSph",Data)
+
+   K = sp.max(field)
+   print(K)
+

@@ -14,28 +14,27 @@
 
 
 # simulation scale
-BOX_SIZE                      0.175       # box size along the longest side (in Mpc/h if COMOVING is adopted)
-NX0_TOT_X                     512         # number of base-level cells along x
-NX0_TOT_Y                     512         # number of base-level cells along y
-NX0_TOT_Z                     512         # number of base-level cells along z
-OMP_NTHREAD                  -1           # number of OpenMP threads (<=0=auto -> omp_get_max_threads) [-1] ##OPENMP ONLY##
-END_T                        -1.0         # end physical time (<0=auto -> must be set by test problems or restart) [-1.0]
-END_STEP                     -1           # end step (<0=auto -> must be set by test problems or restart) [-1]
+BOX_SIZE         0.180126953125           # box size along the longest side (in Mpc/h if COMOVING is adopted)
+NX0_TOT_X                  1056           # number of base-level cells along x [IC 1056]
+NX0_TOT_Y                  1056           # number of base-level cells along y
+NX0_TOT_Z                  1056           # number of base-level cells along z
+OMP_NTHREAD                   1           # number of OpenMP threads (<=0=auto -> omp_get_max_threads) [-1] ##OPENMP ONLY##
+END_T                        -1           # end physical time (<0=auto -> must be set by test problems or restart) [-1.0]
+END_STEP                    100           # end step (<0=auto -> must be set by test problems or restart) [-1]
 
 
 # test problems
 TESTPROB_ID                   1007        # test problem ID [0]
-                                          #    0: none
-                                          # 1007: ELBDM halo extracted from a large-scale structure simulation (+GRAVITY)
+                                          # 1003: ELBDM soliton merger (+GRAVITY)
 
 
 # code units (in cgs)
 OPT__UNIT                     1           # specify code units -> must set exactly 3 basic units below [0] ##USELESS FOR COMOVING##
-UNIT_L     4.43663203664989e+24           # length unit        (<=0 -> set to UNIT_V*UNIT_T or (UNIT_M/UNIT_D)^(1/3)) [-1.0]
-UNIT_M                       -1.0         # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
-UNIT_T                       -1.0         # time unit          (<=0 -> set to UNIT_L/UNIT_V)                          [-1.0]
-UNIT_V     1.00000000000000e+07           # velocity unit      (<=0 -> set to UNIT_L/UNIT_T)                          [-1.0]
-UNIT_D     2.57605095281615e-30           # mass density unit  (<=0 -> set to UNIT_M/UNIT_L^3)                        [-1.0]
+UNIT_L       4.43663203664989e+24         # length unit        (<=0 -> set to UNIT_V*UNIT_T or (UNIT_M/UNIT_D)^(1/3)) [-1.0]
+UNIT_M                     -1.0           # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
+UNIT_T                     -1.0           # time unit          (<=0 -> set to UNIT_L/UNIT_V)                          [-1.0]
+UNIT_V      1.00000000000000e+07          # velocity unit      (<=0 -> set to UNIT_L/UNIT_T)                          [-1.0]
+UNIT_D      2.57605095281615e-30          # mass density unit  (<=0 -> set to UNIT_M/UNIT_L^3)                        [-1.0]
 
 
 # boundary conditions
@@ -45,30 +44,26 @@ OPT__BC_FLU_YM                1           # fluid boundary condition at the -y f
 OPT__BC_FLU_YP                1           # fluid boundary condition at the +y face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
 OPT__BC_FLU_ZM                1           # fluid boundary condition at the -z face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
 OPT__BC_FLU_ZP                1           # fluid boundary condition at the +z face: (1=periodic, 2=outflow, 3=reflecting, 4=user)
-OPT__BC_POT                   2           # gravity boundary condition: (1=periodic, 2=isolated)
+OPT__BC_POT                   1           # gravity boundary condition: (1=periodic, 2=isolated)
 GFUNC_COEFF0                 -1.0         # Green's function coefficient at the origin for the isolated BC (<0=auto) [-1.0]
 
-
 # particle (PARTICLE only)
-PAR_NPAR                      0           # total number of particles (must be set for PAR_INIT==1/3)
-PAR_INIT                      1           # initialization option for particles: (1=FUNCTION, 2=RESTART, 3=FILE->"PAR_IC")
-PAR_IC_FORMAT                 1           # data format of PAR_IC: (1=[attribute][id], 2=[id][attribute]; row-major) [1]
-PAR_IC_MASS                  -1.0         # mass of all particles for PAR_INIT==3 (<0=off) [-1.0]
+PAR_NPAR                   2000000        # total number of particles (must be set for PAR_INIT == 1/3)
+PAR_INIT                      1           # initialization option for particles: (1=FUNCTION, 2=RESTART, 3=FILE->"PAR_IC:)
 PAR_INTERP                    3           # particle interpolation scheme: (1=NGP, 2=CIC, 3=TSC) [2]
-PAR_INTEG                     2           # particle integration scheme: (1=Euler, 2=KDK) [2]
-PAR_IMPROVE_ACC               1           # improve force accuracy at patch boundaries [1] ##STORE_POT_GHOST and PAR_INTERP=2/3 ONLY##
+PAR_INTEG                     2           # particle integration scheme: (1=Euler, 2=KDK)[2]
+PAR_IMPROVE_ACC               1           # imporve force accuracy at patch boundaries [1] ## STORE_POT_GHOST and PAR_INTERP-2/3 ONLY##
 PAR_PREDICT_POS               1           # predict particle position during mass assignment [1]
-PAR_REMOVE_CELL              -1.0         # remove particles X-root-cells from the boundaries (non-periodic BC only; <0=auto) [-1.0]
-
+PAR_REMOVE_CELL              -1.0         # remove particles X-root-cells from the boundaries (non-periodic BC only; <0 = auto) [-1.0]
 
 # time-step
 DT__FLUID                    -1.0         # dt criterion: fluid solver CFL factor (<0=auto) [-1.0]
 DT__FLUID_INIT               -1.0         # dt criterion: DT__FLUID at the first step (<0=auto) [-1.0]
 DT__GRAVITY                  -1.0         # dt criterion: gravity solver safety factor (<0=auto) [-1.0]
-DT__PHASE                     0.0         # dt criterion: phase rotation safety factor (0=off) [0.0] ##ELBDM ONLY##
-DT__PARVEL                    0.5         # dt criterion: particle velocity safety factor [0.5]
+DT__PARVEL                    0.5         # dt criterion: particle velocity safety factor[0.5]
 DT__PARVEL_MAX               -1.0         # dt criterion: maximum allowed dt from particle velocity (<0=off) [-1.0]
 DT__PARACC                    0.5         # dt criterion: particle acceleration safety factor (0=off) [0.5] ##STORE_PAR_ACC ONLY##
+DT__PHASE                     0.0         # dt criterion: phase rotation safety factor (0=off) [0.0] ##ELBDM ONLY##
 DT__SYNC_PARENT_LV            0.1         # dt criterion: allow dt to adjust by (1.0+DT__SYNC_PARENT) in order to synchronize
                                           #               with the parent level (for OPT__DT_LEVEL==3 only) [0.1]
 DT__SYNC_CHILDREN_LV          0.1         # dt criterion: allow dt to adjust by (1.0-DT__SYNC_CHILDREN) in order to synchronize
@@ -86,27 +81,27 @@ REGRID_COUNT                  4           # refine every REGRID_COUNT sub-step [
 FLAG_BUFFER_SIZE              8           # number of buffer cells for the flag operation (0~PATCH_SIZE) [PATCH_SIZE]
 FLAG_BUFFER_SIZE_MAXM1_LV     4           # FLAG_BUFFER_SIZE at the level MAX_LEVEL-1 (<0=auto -> FLAG_BUFFER_SIZE) [-1]
 FLAG_BUFFER_SIZE_MAXM2_LV    -1           # FLAG_BUFFER_SIZE at the level MAX_LEVEL-2 (<0=auto) [-1]
-MAX_LEVEL                     0           # maximum refinement level (0~NLEVEL-1) [NLEVEL-1]
-OPT__FLAG_RHO                 0           # flag: density (Input__Flag_Rho) [0]
+MAX_LEVEL                     3           # maximum refinement level (0~NLEVEL-1) [NLEVEL-1]
+OPT__FLAG_RHO                 1           # flag: density (Input__Flag_Rho) [0]
 OPT__FLAG_RHO_GRADIENT        0           # flag: density gradient (Input__Flag_RhoGradient) [0]
 OPT__FLAG_ENGY_DENSITY        0           # flag: energy density (Input_Flag_EngyDensity) [0] ##ELBDM ONLY##
 OPT__FLAG_LOHNER_DENS         0           # flag: Lohner for mass density   (Input__Flag_Lohner) [0] ##BOTH HYDRO AND ELBDM##
-OPT__FLAG_LOHNER_FORM         2           # form of Lohner: (1=FLASH-1, 2=FLASH-2, 3=form-invariant-1, 4=form-invariant-2) [2]
+OPT__FLAG_LOHNER_FORM         4           # form of Lohner: (1=FLASH-1, 2=FLASH-2, 3=form-invariant-1, 4=form-invariant-2) [2]
 OPT__FLAG_USER                0           # flag: user-defined (Input__Flag_User) -> edit "Flag_User.cpp" [0]
 OPT__FLAG_REGION              0           # flag: specify the regions **allowed** to be refined -> edit "Flag_Region.cpp" [0]
-OPT__FLAG_NPAR_PATCH          0           # flag: # of particles per patch (Input__Flag_NParPatch): (0=off, 1=itself, 2=itself+siblings) [0]
+OPT__FLAG_NPAR_PATCH          2           # 2 is better
 OPT__FLAG_NPAR_CELL           0           # flag: # of particles per cell  (Input__Flag_NParCell) [0]
 OPT__FLAG_PAR_MASS_CELL       0           # flag: total particle mass per cell (Input__Flag_ParMassCell) [0]
 OPT__NO_FLAG_NEAR_BOUNDARY    0           # flag: disallow refinement near the boundaries [0]
 OPT__PATCH_COUNT              1           # record the # of patches   at each level: (0=off, 1=every step, 2=every sub-step) [1]
-OPT__PARTICLE_COUNT           1           # record the # of particles at each level: (0=off, 1=every step, 2=every sub-step) [1]
+OPT__PARTICLE_COUNT           1
 OPT__REUSE_MEMORY             2           # reuse patch memory to reduce memory fragmentation: (0=off, 1=on, 2=aggressive) [2]
 OPT__MEMORY_POOL              0           # preallocate patches for OPT__REUSE_MEMORY=1/2 (Input__MemoryPool) [0]
 
 
 # load balance (LOAD_BALANCE only)
 LB_INPUT__WLI_MAX             0.1         # weighted-load-imbalance (WLI) threshold for redistributing all patches [0.1]
-LB_INPUT__PAR_WEIGHT          2.0         # load-balance weighting of one particle over one cell [0.0]
+LB_INPUT__PAR_WEIGHT          0.0         # load-balance weighting of one particle over one cell [0.0]
 OPT__RECORD_LOAD_BALANCE      1           # record the load-balance info [1]
 OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve load balance, especially with particles [1]
                                           # (STORE_POT_GHOST, PAR_IMPROVE_ACC=1, OPT__TIMING_BARRIER=0 only; recommend AUTO_REDUCE_DT=0)
@@ -115,16 +110,16 @@ OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve loa
 # fluid solver in ELBDM (MODEL==ELBDM only)
 ELBDM_MASS                    8.0e-23     # particle mass in ev/c^2 (input unit is fixed even when OPT__UNIT or COMOVING is on)
 ELBDM_PLANCK_CONST           -1.0         # reduced Planck constant (will be overwritten if OPT__UNIT or COMOVING is on)
+ELBDM_LAMBDA                  1.0         # quartic self-interaction coefficient [1.0] ##QUARTIC_SELF_INTERACTION ONLY##
 ELBDM_TAYLOR3_COEFF           0.166666667 # 3rd Taylor expansion coefficient [1.0/6.0] ##USELESS if ELBDM_TAYLOR3_AUTO is on##
 ELBDM_TAYLOR3_AUTO            0           # Optimize ELBDM_TAYLOR3_COEFF automatically to minimize the damping at kmax [1]
-ELBDM_REMOVE_MOTION_CM        1           # remove the motion of center-of-mass (must enable OPT__CK_CONSERVATION):
+ELBDM_REMOVE_MOTION_CM        2           # remove the motion of center-of-mass (must enable OPT__CK_CONSERVATION):
                                           # (0=off, 1=init, 2=every step) [0]
-
 
 # fluid solvers in all models
 FLU_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU fluid solver (<=0=auto) [-1]
 GPU_NSTREAM                  -1           # number of CUDA streams for the asynchronous memory copy in GPU (<=0=auto) [-1]
-OPT__FIXUP_FLUX               1           # correct coarse grids by the fine-grid boundary fluxes [1] ##HYDRO and ELBDM ONLY##
+OPT__FIXUP_FLUX               0           # correct coarse grids by the fine-grid boundary fluxes [1] ##HYDRO and ELBDM ONLY##
 OPT__FIXUP_RESTRICT           1           # correct coarse grids by averaging the fine-grid data [1]
 OPT__CORR_AFTER_ALL_SYNC     -1           # apply various corrections after all levels are synchronized (see "Flu_CorrAfterAllSync"):
                                           # (-1=auto, 0=off, 1=every step, 2=before dump) [-1]
@@ -135,7 +130,7 @@ MIN_DENS                      0.0         # minimum mass density (must >= 0.0) [
 
 
 # gravity solvers in all models
-NEWTON_G                     -1.0         # gravitational constant (will be overwritten if OPT__UNIT or COMOVING is on)
+NEWTON_G               0.07957747         # gravitational constant (will be overwritten if OPT__UNIT or COMOVING is on)
 SOR_OMEGA                    -1.0         # over-relaxation parameter in SOR: (<0=auto) [-1.0]
 SOR_MAX_ITER                 -1           # maximum number of iterations in SOR: (<0=auto) [-1]
 SOR_MIN_ITER                 -1           # minimum number of iterations in SOR: (<0=auto) [-1]
@@ -151,14 +146,14 @@ OPT__EXTERNAL_POT             0           # add the external potential (incompat
 
 # initialization
 OPT__INIT                     3           # initialization option: (1=FUNCTION, 2=RESTART, 3=FILE->"UM_IC")
-RESTART_LOAD_NRANK            256         # number of parallel I/O (i.e., number of MPI ranks) for restart [1]
+RESTART_LOAD_NRANK            6           # number of parallel I/O (i.e., number of MPI ranks) for restart [1]
 OPT__RESTART_RESET            0           # reset some simulation status parameters (e.g., current step and time) during restart [0]
 OPT__UM_IC_LEVEL              0           # AMR level corresponding to UM_IC (must >= 0) [0]
 OPT__UM_IC_NVAR              -1           # number of variables in UM_IC: (1~NCOMP_TOTAL; <=0=auto) [HYDRO=5+passive/ELBDM=2]
-OPT__UM_IC_FORMAT             1           # data format of UM_IC: (1=vzyx, 2=zyxv; row-major and v=field) [1]
+OPT__UM_IC_FORMAT             2           # data format of UM_IC: (1=vzyx, 2=zyxv; row-major and v=field) [1]
 OPT__UM_IC_DOWNGRADE          1           # downgrade UM_IC from level OPT__UM_IC_LEVEL to 0 [1]
 OPT__UM_IC_REFINE             1           # refine UM_IC from level OPT__UM_IC_LEVEL to MAX_LEVEL [1]
-OPT__UM_IC_LOAD_NRANK         256         # number of parallel I/O (i.e., number of MPI ranks) for loading UM_IC [1]
+OPT__UM_IC_LOAD_NRANK         6           # number of parallel I/O (i.e., number of MPI ranks) for loading UM_IC [1]
 OPT__INIT_RESTRICT            1           # restrict all data during the initialization [1]
 OPT__INIT_GRID_WITH_OMP       1           # enable OpenMP when assigning the initial condition of each grid patch [1]
 OPT__GPUID_SELECT            -1           # GPU ID selection mode: (-3=Laohu, -2=CUDA, -1=MPI rank, >=0=input) [-1]
@@ -184,12 +179,12 @@ OPT__OUTPUT_USER              0           # output the user-specified data -> ed
 OPT__OUTPUT_PAR_TEXT          0           # output the particle text file [0] ##PARTICLE ONLY##
 OPT__OUTPUT_BASEPS            0           # output the base-level power spectrum [0]
 OPT__OUTPUT_BASE              0           # only output the base-level data [0] ##OPT__OUTPUT_PART ONLY##
-OPT__OUTPUT_POT               1           # output gravitational potential [0] ##OPT__OUTPUT_TOTAL ONLY##
+OPT__OUTPUT_POT               0           # output gravitational potential [0] ##OPT__OUTPUT_TOTAL ONLY##
 OPT__OUTPUT_PAR_DENS          1           # output the particle or total mass density on grids:
                                           # (0=off, 1=particle mass density, 2=total mass density) [1] ##OPT__OUTPUT_TOTAL ONLY##
-OPT__OUTPUT_MODE              2           # (1=const step, 2=const dt, 3=dump table) -> edit "Input__DumpTable" for 3
-OUTPUT_STEP                   5           # output data every OUTPUT_STEP step ##OPT__OUTPUT_MODE==1 ONLY##
-OUTPUT_DT                     1.0e-1      # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
+OPT__OUTPUT_MODE              1           # (1=const step, 2=const dt, 3=dump table) -> edit "Input__DumpTable" for 3
+OUTPUT_STEP                 100           # output data every OUTPUT_STEP step ##OPT__OUTPUT_MODE==1 ONLY##
+OUTPUT_DT                  0.0001         # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
 OUTPUT_PART_X                -1.0         # x coordinate for OPT__OUTPUT_PART [-1.0]
 OUTPUT_PART_Y                -1.0         # y coordinate for OPT__OUTPUT_PART [-1.0]
 OUTPUT_PART_Z                -1.0         # z coordinate for OPT__OUTPUT_PART [-1.0]

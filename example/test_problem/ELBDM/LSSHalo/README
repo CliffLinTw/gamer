@@ -15,11 +15,13 @@ Default setup:
 2. ELBDM_MASS              8.0e-23
    ELBDM_REMOVE_MOTION_CM  1
    ELBDM_TAYLOR3_AUTO      0
+   OPT__FIXUP_FLUX         0
+   ELBDM_TAYLOR3_COEFF     0.166666666666667
 
 3. OPT__BC_FLU_*           1  (periodic)
    OPT__BC_POT             2  (isolated)
 
-4. MAX_LEVEL               0
+4. MAX_LEVEL               3
 
 
 Note:
