@@ -29,7 +29,6 @@ void Init_TestProb_ELBDM_GaussianWavePacket();
 void Init_TestProb_ELBDM_DiscHeating();
 void Init_TestProb_ELBDM_TraceParticle();
 
-
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_TestProb
 // Description :  Initialize the target test problem

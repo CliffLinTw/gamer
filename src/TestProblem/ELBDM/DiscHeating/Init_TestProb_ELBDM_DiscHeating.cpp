@@ -26,6 +26,7 @@ static void   RanVec2_FixRadius ( const double r, double RanVec[], double NormVe
 static double Disc_Interpolation( const double RanM, const double R, const double DiscMConst);
 static void   Init_ExtPot();
 
+# ifdef PARTICLE
 static void Par_Init_ByFunction_AfterAcceleration( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
@@ -38,7 +39,7 @@ void (*Par_Init_ByFunction_AfterAcceleration_Ptr)( const long NPar_ThisRank, con
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
                                  real *ParAccX, real *ParAccY, real *ParAccZ,
                                  real *ParTime, real *AllAttribute[PAR_NATT_TOTAL] ) = Par_Init_ByFunction_AfterAcceleration;
-
+# endif
 
 
 ///static char   var_str[MAX_STRING];
@@ -589,11 +590,13 @@ void Init_User_Disc()
   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating particle acceleration" );
 #  endif
 
+#  ifdef PARTICLE
   Par_Init_ByFunction_AfterAcceleration_Ptr( amr->Par->NPar_AcPlusInac, amr->Par->NPar_Active_AllRank,
                                   amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
                                   amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ,
                                   amr->Par->AccX, amr->Par->AccY, amr->Par->AccZ,
                                   amr->Par->Time, amr->Par->Attribute );
+#  endif //ifdef PARTICLE
 
 } // FUNCTION : Init_User_Disc
 

@@ -6,9 +6,15 @@ Disc_Cen_Z              0.0897436488758434
 Disc_BulkVel_X          0.0
 Disc_BulkVel_Y          0.0
 Disc_BulkVel_Z          0.0
-Disc_Radius             0.00696 #0.00900634765625
-Disc_Decay_Radius       0.000696 #0.000900634765625
-Disc_Mass               0.005  #0.0394  #add 5 zeros 
+Disc_Radius             0.006955
+Disc_Decay_Radius       0.0006955
+Disc_Mass               0.005397 
 Disc_Random_Seed        1002
 Rotate_File_Prof        profile.txt
-Velocity_Dispersion     0.02   
+Velocity_Dispersion     0.02 
+Fix_DM                  1
+Output_Wave_Function    0
+
+
+
+  

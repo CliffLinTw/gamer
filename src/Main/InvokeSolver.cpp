@@ -8,6 +8,7 @@ static void Closing_Step( const Solver_t TSolver, const int lv, const int SaveSg
                           const int *PID0_List, const int ArrayID, const double dt );
 
 extern bool FixDM;
+//static bool FixDM_sub = true;
 extern Timer_t *Timer_Pre         [NLEVEL][NSOLVER];
 extern Timer_t *Timer_Sol         [NLEVEL][NSOLVER];
 extern Timer_t *Timer_Clo         [NLEVEL][NSOLVER];
@@ -394,6 +395,7 @@ void Preparation_Step( const Solver_t TSolver, const int lv, const double TimeNe
 void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld,
              const int NPG, const int ArrayID, const double dt_in, const double Poi_Coeff )
 {
+//   const double dt = ( FixDM && amr->Par->Init == PAR_INIT_BY_RESTART ) ? 0.0 : dt_in;
    const double dt = ( FixDM ) ? 0.0 : dt_in;
    const double dh = amr->dh[lv];
 

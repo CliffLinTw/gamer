@@ -25,7 +25,7 @@ static RandomNumber_t *RNG = NULL;
 static double pi = 3.1415926;
 static double G = 6.67408E-8;
 static void   RanVec3_FixRadius ( const double r, double RanVec[], double NormVec[], const double RanV);
-
+ 
 static void Par_Init_ByFunction_AfterAcceleration_Trace( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
@@ -38,7 +38,6 @@ void (*Par_Init_ByFunction_AfterAcceleration_Trace_Ptr)( const long NPar_ThisRan
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
                                  real *ParAccX, real *ParAccY, real *ParAccZ,
                                  real *ParTime, real *AllAttribute[PAR_NATT_TOTAL] ) = Par_Init_ByFunction_AfterAcceleration_Trace;
-
 
 ///static char   var_str[MAX_STRING];
 
@@ -442,7 +441,7 @@ void Par_Init_ByFunction_AfterAcceleration_Trace(const long NPar_ThisRank, const
 
 } // FUNCTION : Par_Init_ByFunction
 
-#  endif
+#  endif //ifdef PARTICLE
 
 //-------------------------------------------------------------------------------------------------------
 //// Function    :  RanVec3_FixRadius
@@ -508,7 +507,7 @@ void BC_TraceParticle( real fluid[], const double x, const double y, const doubl
    fluid[DENS] = (real)0.0;
 
 } // FUNCTION : BC
-#  endif
+#  endif  //if ( MODEL == ELBDM && defined GRAVITY )
 
 
 
@@ -591,11 +590,13 @@ void Init_User_TraceParticle()
   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating particle acceleration" );
 #  endif
 
+# ifdef PARTICLE
   Par_Init_ByFunction_AfterAcceleration_Trace_Ptr( amr->Par->NPar_AcPlusInac, amr->Par->NPar_Active_AllRank,
                                   amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
                                   amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ,
                                   amr->Par->AccX, amr->Par->AccY, amr->Par->AccZ,
                                   amr->Par->Time, amr->Par->Attribute );
+# endif 
 
 } // FUNCTION : Init_User_TraceParticle
 
@@ -638,6 +639,7 @@ void Init_TestProb_ELBDM_TraceParticle()
    Flag_User_Ptr               = NULL;    // option: OPT__FLAG_USER;        example: Refine/Flag_User.cpp
    Mis_GetTimeStep_User_Ptr    = NULL;    // option: OPT__DT_USER;          example: Miscellaneous/Mis_GetTimeStep_User.cpp
    BC_User_Ptr                 = BC_TraceParticle; // option: OPT__BC_FLU_*=4;       example: TestProblem/ELBDM/ExtPot/Init_TestProb_ELBDM_ExtPot.cpp --> BC()
+
    Flu_ResetByUser_Func_Ptr    = NULL;    // option: OPT__RESET_FLUID;      example: Fluid/Flu_ResetByUser.cpp
    Output_User_Ptr             = NULL;    // option: OPT__OUTPUT_USER;      example: TestProblem/Hydro/AcousticWave/Init_TestProb_Hydro_AcousticWave.cpp --> OutputError()
    Aux_Record_User_Ptr         = NULL;    // option: OPT__RECORD_USER;      example: Auxiliary/Aux_Record_User.cpp
