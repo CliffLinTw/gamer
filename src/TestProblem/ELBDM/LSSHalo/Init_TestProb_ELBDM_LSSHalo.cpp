@@ -14,7 +14,10 @@ static double Disc_Radius;
 static double Disc_Mass;
 static int    Disc_RSeed;
 static double VelDisp;
-bool   FixDM = true;
+bool FixDM;
+bool OutputWaveFunction;
+bool AddParWhenRestart;
+int AddParWhenRestartNPar;
 
 static RandomNumber_t *RNG = NULL;
 static double pi = 3.1415926;
@@ -22,6 +25,7 @@ static double G = 6.67408E-8;
 static void   Vec2_FixRadius ( const double r, double RanVec[], double NormVec[], const double RanV);
 static double Disc_Interpolation( const double RanM, const double R, const double DiscMConst);
 
+# ifdef PARTICLE
 static void Par_AfterAcceleration( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
@@ -29,12 +33,13 @@ static void Par_AfterAcceleration( const long NPar_ThisRank, const long NPar_All
                                  real *ParTime, real *AllAttribute[PAR_NATT_TOTAL] );
 
 // this function pointer may be overwritten by various test problem initializers
+
 void (*Par_AfterAcceleration_Ptr)( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
                                  real *ParAccX, real *ParAccY, real *ParAccZ,
                                  real *ParTime, real *AllAttribute[PAR_NATT_TOTAL] ) = Par_AfterAcceleration;
-
+# endif //ifdef PARTICLE
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -120,6 +125,10 @@ void SetParameter()
    ReadPara->Add( "Disc_Mass",            &Disc_Mass,             1.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Disc_Random_Seed",     &Disc_RSeed,            123,           0,                NoMax_int         );
    ReadPara->Add( "Velocity_Dispersion",  &VelDisp,               0.0,           0.0,              1.0               );
+   ReadPara->Add( "Fix_DM",               &FixDM,                true,          Useless_bool,      Useless_bool      );
+   ReadPara->Add( "Output_Wave_Function", &OutputWaveFunction,   true,          Useless_bool,      Useless_bool      );
+   ReadPara->Add( "Add_Par_When_Restart", &AddParWhenRestart,    true,          Useless_bool,      Useless_bool      );
+   ReadPara->Add( "Add_Par_When_Restart_NPar",&AddParWhenRestartNPar, 2000000,   NoMin_int,         NoMax_int        );
 
    ReadPara->Read( FileName );
    
@@ -152,7 +161,7 @@ void SetParameter()
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=============================================================================\n"  );
-      Aux_Message( stdout, "  test problem ID = %d\n", TESTPROB_ID         );
+      Aux_Message( stdout, "  test problem ID             = %d\n"                        , TESTPROB_ID        );
       Aux_Message( stdout, "  disc center                 = %13.7e\n, %13.7e\n, %13.7e\n", Disc_Cen[0],
                                                                                            Disc_Cen[1],
                                                                                            Disc_Cen[2]        );
@@ -163,7 +172,13 @@ void SetParameter()
       Aux_Message( stdout, "  disc radius                 = %13.7e\n",                     Disc_Radius        );
       Aux_Message( stdout, "  disc mass                   = %13.7e\n",                     Disc_Mass          );
       Aux_Message( stdout, "  disc random seed            = %d\n",                         Disc_RSeed         );
-      Aux_Message( stdout, "=============================================================================\n" );
+      Aux_Message( stdout, "  velocity dispersion         = %13.7e\n",                     VelDisp            );
+      Aux_Message( stdout, "  fix DM                      = %d\n",                         FixDM              );
+      Aux_Message( stdout, "  output wavefunction         = %d\n",                         OutputWaveFunction );
+      Aux_Message( stdout, "  add particles when restart  = %d\n",                         AddParWhenRestart  );   
+      Aux_Message( stdout, "  number of particles to be added = %d\n",                  AddParWhenRestartNPar );
+
+      Aux_Message( stdout, "=============================================================================\n"  );
    }
 
 
@@ -313,7 +328,7 @@ void Par_Disc_Heating(const long NPar_ThisRank, const long NPar_AllRank, real *P
          MPI_Scatterv( Pos_AllRank[d], NSend, SendDisp, MPI_FLOAT,  Pos[d], NPar_ThisRank, MPI_FLOAT,  0, MPI_COMM_WORLD );
          MPI_Scatterv( Vel_AllRank[d], NSend, SendDisp, MPI_FLOAT,  Vel[d], NPar_ThisRank, MPI_FLOAT,  0, MPI_COMM_WORLD );
       }
-   #  endif
+   #  endif  //ifdef FLOAT8
 
 
       if ( MPI_Rank == 0 )
@@ -440,10 +455,16 @@ double Disc_Interpolation( const double RanM, const double R, const double DiscM
    return r;
 }
 
-#  endif
-
+#  endif 
+# ifdef PARTICLE
 void Init_Disc()
 {
+  
+  if ( amr->Par->Init != PAR_INIT_BY_RESTART  ||  !AddParWhenRestart )   return;
+  
+
+  if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
+
   #  ifdef GRAVITY
   if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
   {
@@ -475,7 +496,7 @@ void Init_Disc()
      if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating gravitational potential" );
   } // if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
 #  endif // #ifdef GARVITY
-
+#  endif // # ifdef PARTICLE
 
 // initialize particle acceleration
 #  if ( defined PARTICLE  &&  defined STORE_PAR_ACC )
@@ -489,7 +510,7 @@ void Init_Disc()
 
   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating particle acceleration" );
 #  endif
-
+#  ifdef PARTICLE
   Par_AfterAcceleration_Ptr( amr->Par->NPar_AcPlusInac, amr->Par->NPar_Active_AllRank,
                                   amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
                                   amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ,
@@ -498,7 +519,8 @@ void Init_Disc()
 
 } // FUNCTION : Init_Disc
 
-#endif // #if ( MODEL == ELBDM  &&  defined GRAVITY )
+#  endif //ifdef PARTICLE
+#  endif // #if ( MODEL == ELBDM  &&  defined GRAVITY )
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_TestProb_ELBDM_LSSHalo
