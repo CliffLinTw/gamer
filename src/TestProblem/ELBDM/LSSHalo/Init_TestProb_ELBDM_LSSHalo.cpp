@@ -26,6 +26,13 @@ static void   Vec2_FixRadius ( const double r, double RanVec[], double NormVec[]
 static double Disc_Interpolation( const double RanM, const double R, const double DiscMConst);
 
 # ifdef PARTICLE
+
+static void Par_Disc_Heating(const long NPar_ThisRank, const long NPar_AllRank,
+                                 real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
+                                 real *ParVelX, real *ParVelY, real *ParVelZ,
+                                 real *ParTime, real *AllAttribute[PAR_NATT_TOTAL]);
+
+
 static void Par_AfterAcceleration( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                  real *ParVelX, real *ParVelY, real *ParVelZ,
@@ -33,6 +40,11 @@ static void Par_AfterAcceleration( const long NPar_ThisRank, const long NPar_All
                                  real *ParTime, real *AllAttribute[PAR_NATT_TOTAL] );
 
 // this function pointer may be overwritten by various test problem initializers
+
+void (*Par_Disc_Heating_Ptr)(const long NPar_ThisRank, const long NPar_AllRank,
+                                 real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
+                                 real *ParVelX, real *ParVelY, real *ParVelZ,
+                                 real *ParTime, real *AllAttribute[PAR_NATT_TOTAL])= Par_Disc_Heating;
 
 void (*Par_AfterAcceleration_Ptr)( const long NPar_ThisRank, const long NPar_AllRank,
                                  real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
@@ -131,7 +143,7 @@ void SetParameter()
    ReadPara->Add( "Add_Par_When_Restart_NPar",&AddParWhenRestartNPar, 2000000,   NoMin_int,         NoMax_int        );
 
    ReadPara->Read( FileName );
-   
+
    delete ReadPara;
 
 // (1-2) set the default values
@@ -175,7 +187,7 @@ void SetParameter()
       Aux_Message( stdout, "  velocity dispersion         = %13.7e\n",                     VelDisp            );
       Aux_Message( stdout, "  fix DM                      = %d\n",                         FixDM              );
       Aux_Message( stdout, "  output wavefunction         = %d\n",                         OutputWaveFunction );
-      Aux_Message( stdout, "  add particles when restart  = %d\n",                         AddParWhenRestart  );   
+      Aux_Message( stdout, "  add particles when restart  = %d\n",                         AddParWhenRestart  );
       Aux_Message( stdout, "  number of particles to be added = %d\n",                  AddParWhenRestartNPar );
 
       Aux_Message( stdout, "=============================================================================\n"  );
@@ -455,15 +467,69 @@ double Disc_Interpolation( const double RanM, const double R, const double DiscM
    return r;
 }
 
-#  endif 
+#  endif
 # ifdef PARTICLE
 void Init_Disc()
 {
-  
-  if ( amr->Par->Init != PAR_INIT_BY_RESTART  ||  !AddParWhenRestart )   return;
-  
 
-  if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
+   if ( amr->Par->Init != PAR_INIT_BY_RESTART  || !OPT__RESTART_RESET || !AddParWhenRestart )   return;
+
+   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
+
+   const long   NNewPar        = ( MPI_Rank == 0 ) ? AddParWhenRestartNPar : 0;
+   const long   NPar_AllRank   = NNewPar;
+
+   real *NewParAtt[PAR_NATT_TOTAL];
+
+   for (int v=0; v<PAR_NATT_TOTAL; v++)   NewParAtt[v] = new real [NNewPar];
+
+
+// set particle attributes
+// ============================================================================================================
+   real *Time_AllRank   = NewParAtt[PAR_TIME];
+   real *Mass_AllRank   = NewParAtt[PAR_MASS];
+   real *Pos_AllRank[3] = { NewParAtt[PAR_POSX], NewParAtt[PAR_POSY], NewParAtt[PAR_POSZ] };
+   real *Vel_AllRank[3] = { NewParAtt[PAR_VELX], NewParAtt[PAR_VELY], NewParAtt[PAR_VELZ] };
+
+   if ( MPI_Rank == 0 )
+   {
+      const double ParM = Disc_Mass / NPar_AllRank;
+      double Ran, RanR, RanM, RanV, RanVec[3], NormVec[3];
+      Aux_Message(stdout, " Particle Mass = %13.7e\n", ParM) ;
+
+//    initialize the RNG
+      RNG = new RandomNumber_t( 1 );
+      RNG->SetSeed( 0, Disc_RSeed );
+
+      const double DiscMConst = Disc_Mass / (Disc_Decay_R - (Disc_Decay_R + Disc_Radius) * exp( - Disc_Radius/Disc_Decay_R ) );
+
+      for ( long p = 0; p < NPar_AllRank; p++)
+      {
+         Time_AllRank[p] = 0;
+//       mass
+         Mass_AllRank[p] = ParM;
+
+//       position
+         Ran  = RNG->GetValue( 0, 0.0, 1.0);
+         RanM = Ran*Disc_Mass;
+         RanR = Disc_Interpolation( RanM, Disc_Decay_R, DiscMConst );
+         RanV = sqrt(G*RanM/RanR);
+         Vec2_FixRadius( RanR, RanVec, NormVec, RanV );
+         for (int d = 0; d < 3; d++) Pos_AllRank[d][p] = RanVec[d] + Disc_Cen[d];
+
+//       velocity
+         for (int d = 0; d< 3; d++) Vel_AllRank[d][p] = Disc_BulkVel[d];
+      } // for ( long p = 0; p < NPar_AllRank; p++)
+      Aux_Message( stdout, " Particle mass              = %13.7e\n", ParM );
+
+   } //if ( MPI_Rank == 0 )
+
+// add particles here
+   Par_AddParticleAfterInit( NNewPar, NewParAtt );
+// free memory
+   for (int v=0; v<PAR_NATT_TOTAL; v++)   delete [] NewParAtt[v];
+
+
 
   #  ifdef GRAVITY
   if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
