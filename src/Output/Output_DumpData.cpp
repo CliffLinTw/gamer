@@ -3,7 +3,7 @@
 static void Write_DumpRecord();
 extern void (*Output_User_Ptr)();
 
-
+static int StageWavefunction;
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -21,6 +21,7 @@ extern void (*Output_User_Ptr)();
 void Output_DumpData( const int Stage )
 {
 
+   StageWavefunction = Stage;
 // check
    if ( Stage < 0  ||  Stage > 2 )
       Aux_Error( ERROR_INFO, "incorrect parameter %s = %d !!\n", "Stage", Stage );

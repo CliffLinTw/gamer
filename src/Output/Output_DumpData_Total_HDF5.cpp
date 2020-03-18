@@ -15,6 +15,7 @@ static void GetCompound_SymConst ( hid_t &H5_TypeID );
 static void GetCompound_InputPara( hid_t &H5_TypeID );
 
 extern bool OutputWaveFunction;
+extern int  StageWavefunction;
 
 /*======================================================================================================
 Data structure:
@@ -708,7 +709,7 @@ void Output_DumpData_Total_HDF5( const char *FileName )
 
 // 5-0. determine variable indices
 //   NFieldOut = NCOMP_TOTAL;
-   NFieldOut = ( OutputWaveFunction ) ? NCOMP_TOTAL : 0;   
+   NFieldOut = ( OutputWaveFunction || StageWavefunction == 2 ) ? NCOMP_TOTAL : 0;   
 
 #  ifdef GRAVITY
    int  PotDumpIdx = -1;
@@ -724,7 +725,7 @@ void Output_DumpData_Total_HDF5( const char *FileName )
 // 5-1. set the output field names
    FieldName = new char [NFieldOut][MAX_STRING];
    
-   if ( OutputWaveFunction )
+   if ( OutputWaveFunction || StageWavefunction == 2 )
    for (int v=0; v<NCOMP_TOTAL; v++)   sprintf( FieldName[v], FieldLabel[v] );
 
 #  ifdef GRAVITY

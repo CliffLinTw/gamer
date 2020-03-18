@@ -14,6 +14,7 @@ static double Disc_Radius;
 static double Disc_Mass;
 static int    Disc_RSeed;
 static double VelDisp;
+static int Idx_ParLabel = Idx_Undefined;
 bool FixDM;
 bool OutputWaveFunction;
 bool AddParWhenRestart;
@@ -235,6 +236,353 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 ////
 //// Return      :  None
 ////-------------------------------------------------------------------------------------------------------
+
+/*
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  GetCenterOfMass_Disc_Heating
+// Description :  Record the center of mass (CM)
+//
+// Note        :  1. Invoked by Record_EridanusII() recursively
+//                2. Only include cells within CM_MaxR from CM_Old[] when updating CM
+//
+// Parameter   :  CM_Old[] : Previous CM
+//                CM_New[] : New CM to be returned
+//                CM_MaxR  : Maximum radius to compute CM
+//
+// Return      :  CM_New[]
+//-------------------------------------------------------------------------------------------------------
+void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const double CM_MaxR )
+{
+
+   const double CM_MaxR2          = SQR( CM_MaxR );
+   const double HalfBox[3]        = { 0.5*amr->BoxSize[0], 0.5*amr->BoxSize[1], 0.5*amr->BoxSize[2] };
+   const bool   Periodic          = ( OPT__BC_FLU[0] == BC_FLU_PERIODIC );
+   const bool   IntPhase_No       = false;
+   const real   MinDens_No        = -1.0;
+   const real   MinPres_No        = -1.0;
+   const bool   DE_Consistency_No = false;
+#  ifdef PARTICLE
+   const bool   TimingSendPar_No  = false;
+   const bool   PredictParPos_No  = false;
+   const bool   JustCountNPar_No  = false;
+#  ifdef LOAD_BALANCE
+   const bool   SibBufPatch       = true;
+   const bool   FaSibBufPatch     = true;
+#  else
+   const bool   SibBufPatch       = NULL_BOOL;
+   const bool   FaSibBufPatch     = NULL_BOOL;
+#  endif
+#  endif // #ifdef PARTICLE
+
+   int   *PID0List = NULL;
+   double M_ThisRank, MR_ThisRank[3], M_AllRank, MR_AllRank[3];
+   real (*TotalDens)[PS1][PS1][PS1];
+
+   M_ThisRank = 0.0;
+   for (int d=0; d<3; d++)    MR_ThisRank[d] = 0.0;
+
+
+   for (int lv=0; lv<NLEVEL; lv++)
+   {
+//    initialize the particle density array (rho_ext) and collect particles to the target level
+#     ifdef PARTICLE
+      Prepare_PatchData_InitParticleDensityArray( lv );
+
+      Par_CollectParticle2OneLevel( lv, PredictParPos_No, NULL_REAL, SibBufPatch, FaSibBufPatch, JustCountNPar_No,
+                                    TimingSendPar_No );
+#     endif
+
+//    get the total density on grids
+      TotalDens = new real [ amr->NPatchComma[lv][1] ][PS1][PS1][PS1];
+      PID0List  = new int  [ amr->NPatchComma[lv][1]/8 ];
+
+      for (int PID0=0, t=0; PID0<amr->NPatchComma[lv][1]; PID0+=8, t++)    PID0List[t] = PID0;
+
+      Prepare_PatchData( lv, Time[lv], TotalDens[0][0][0], 0, amr->NPatchComma[lv][1]/8, PID0List, _TOTAL_DENS,
+                         OPT__RHO_INT_SCHEME, UNIT_PATCH, NSIDE_00, IntPhase_No, OPT__BC_FLU, BC_POT_NONE,
+                         MinDens_No, MinPres_No, DE_Consistency_No );
+
+      delete [] PID0List;
+
+
+//    free memory for collecting particles from other ranks and levels, and free density arrays with ghost zones (rho_ext)
+#     ifdef PARTICLE
+      Par_CollectParticle2OneLevel_FreeMemory( lv, SibBufPatch, FaSibBufPatch );
+
+      Prepare_PatchData_FreeParticleDensityArray( lv );
+#     endif
+
+
+//    calculate the center of mass
+      const double dh = amr->dh[lv];
+      const double dv = CUBE( dh );
+
+      for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+      {
+//       skip non-leaf patches
+         if ( amr->patch[0][lv][PID]->son != -1 )  continue;
+
+         const double x0 = amr->patch[0][lv][PID]->EdgeL[0] + 0.5*dh;
+         const double y0 = amr->patch[0][lv][PID]->EdgeL[1] + 0.5*dh;
+         const double z0 = amr->patch[0][lv][PID]->EdgeL[2] + 0.5*dh;
+
+         double x, y, z, dx, dy, dz;
+
+         for (int k=0; k<PS1; k++)  {  z = z0 + k*dh;  dz = z - CM_Old[2];
+                                       if ( Periodic ) {
+                                          if      ( dz > +HalfBox[2] )  {  z -= amr->BoxSize[2];  dz -= amr->BoxSize[2];  }
+                                          else if ( dz < -HalfBox[2] )  {  z += amr->BoxSize[2];  dz += amr->BoxSize[2];  }
+                                       }
+         for (int j=0; j<PS1; j++)  {  y = y0 + j*dh;  dy = y - CM_Old[1];
+                                       if ( Periodic ) {
+                                          if      ( dy > +HalfBox[1] )  {  y -= amr->BoxSize[1];  dy -= amr->BoxSize[1];  }
+                                          else if ( dy < -HalfBox[1] )  {  y += amr->BoxSize[1];  dy += amr->BoxSize[1];  }
+                                       }
+         for (int i=0; i<PS1; i++)  {  x = x0 + i*dh;  dx = x - CM_Old[0];
+                                       if ( Periodic ) {
+                                          if      ( dx > +HalfBox[0] )  {  x -= amr->BoxSize[0];  dx -= amr->BoxSize[0];  }
+                                          else if ( dx < -HalfBox[0] )  {  x += amr->BoxSize[0];  dx += amr->BoxSize[0];  }
+                                       }
+
+//          only include cells within CM_MaxR
+            const double R2 = SQR(dx) + SQR(dy) + SQR(dz);
+            if ( R2 < CM_MaxR2 )
+            {
+               const double dm = TotalDens[PID][k][j][i]*dv;
+
+               M_ThisRank     += dm;
+               MR_ThisRank[0] += dm*x;
+               MR_ThisRank[1] += dm*y;
+               MR_ThisRank[2] += dm*z;
+            }
+         }}}
+      } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+
+      delete [] TotalDens;
+   } // for (int lv=0; lv<NLEVEL; lv++)
+
+
+// collect data from all ranks to calculate the CM
+// --> note that all ranks will get CM_New[]
+   MPI_Allreduce( &M_ThisRank, &M_AllRank, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MR_ThisRank, MR_AllRank, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+
+   for (int d=0; d<3; d++)    CM_New[d] = MR_AllRank[d] / M_AllRank;
+
+// map the new CM back to the simulation domain
+   if ( Periodic )
+   for (int d=0; d<3; d++)
+   {
+      if      ( CM_New[d] >= amr->BoxSize[d] )  CM_New[d] -= amr->BoxSize[d];
+      else if ( CM_New[d] < 0.0              )  CM_New[d] += amr->BoxSize[d];
+
+   }
+
+   for (int d=0; d<3; d++)
+      if ( CM_New[d] >= amr->BoxSize[d]  ||  CM_New[d] < 0.0 )
+         Aux_Error( ERROR_INFO, "CM_New[%d] = %14.7e lies outside the domain !!\n", d, CM_New[d] );
+
+} // FUNCTION : GetCenterOfMass_Disc_Heating
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Record_EridanusII
+// Description :  Record the maximum density and center coordinates
+//
+// Note        :  1. It will also record the real and imaginary parts associated with the maximum density
+//                2. For the center coordinates, it will record the position of maximum density, minimum potential,
+//                   and center-of-mass
+//                3. Output filenames are fixed to "Record__MaxDens" and "Record__Center"
+//
+// Parameter   :  None
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void Record_Disc_Heating()
+{
+
+   const char filename_max_dens[] = "Record__MaxDens";
+   const char filename_center  [] = "Record__Center";
+   const int  CountMPI            = 10;
+
+   double dens, max_dens_loc=-__DBL_MAX__, max_dens_pos_loc[3], real_loc, imag_loc;
+   double pote, min_pote_loc=+__DBL_MAX__, min_pote_pos_loc[3];
+   double send[CountMPI], (*recv)[CountMPI]=new double [MPI_NRank][CountMPI];
+
+
+// collect local data
+   for (int lv=0; lv<NLEVEL; lv++)
+   for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+   {
+//    skip non-leaf patches
+      if ( amr->patch[0][lv][PID]->son != -1 )  continue;
+
+      for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*amr->dh[lv];
+      for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*amr->dh[lv];
+      for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*amr->dh[lv];
+
+         dens = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
+         pote = amr->patch[ amr->PotSg[lv] ][lv][PID]->pot[k][j][i];
+
+         if ( dens > max_dens_loc )
+         {
+            max_dens_loc        = dens;
+            real_loc            = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[REAL][k][j][i];
+            imag_loc            = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[IMAG][k][j][i];
+            max_dens_pos_loc[0] = x;
+            max_dens_pos_loc[1] = y;
+            max_dens_pos_loc[2] = z;
+         }
+
+         if ( pote < min_pote_loc )
+         {
+            min_pote_loc        = pote;
+            min_pote_pos_loc[0] = x;
+            min_pote_pos_loc[1] = y;
+            min_pote_pos_loc[2] = z;
+         }
+      }}}
+   }
+
+
+// gather data to the root rank
+   send[0] = max_dens_loc;
+   send[1] = real_loc;
+   send[2] = imag_loc;
+   send[3] = max_dens_pos_loc[0];
+   send[4] = max_dens_pos_loc[1];
+   send[5] = max_dens_pos_loc[2];
+   send[6] = min_pote_loc;
+   send[7] = min_pote_pos_loc[0];
+   send[8] = min_pote_pos_loc[1];
+   send[9] = min_pote_pos_loc[2];
+
+   MPI_Gather( send, CountMPI, MPI_DOUBLE, recv[0], CountMPI, MPI_DOUBLE, 0, MPI_COMM_WORLD );
+
+
+// record the maximum density and center coordinates
+   double max_dens      = -__DBL_MAX__;
+   double min_pote      = +__DBL_MAX__;
+   int    max_dens_rank = -1;
+   int    min_pote_rank = -1;
+
+   if ( MPI_Rank == 0 )
+   {
+      for (int r=0; r<MPI_NRank; r++)
+      {
+         if ( recv[r][0] > max_dens )
+         {
+            max_dens      = recv[r][0];
+            max_dens_rank = r;
+         }
+
+         if ( recv[r][6] < min_pote )
+         {
+            min_pote      = recv[r][6];
+            min_pote_rank = r;
+         }
+      }
+
+      if ( max_dens_rank < 0  ||  max_dens_rank >= MPI_NRank )
+         Aux_Error( ERROR_INFO, "incorrect max_dens_rank (%d) !!\n", max_dens_rank );
+
+      if ( min_pote_rank < 0  ||  min_pote_rank >= MPI_NRank )
+         Aux_Error( ERROR_INFO, "incorrect min_pote_rank (%d) !!\n", min_pote_rank );
+
+      static bool FirstTime = true;
+
+      if ( FirstTime )
+      {
+         if ( Aux_CheckFileExist(filename_max_dens) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_max_dens );
+         else
+         {
+            FILE *file_max_dens = fopen( filename_max_dens, "w" );
+            fprintf( file_max_dens, "#%19s   %10s   %14s   %14s   %14s\n", "Time", "Step", "Dens", "Real", "Imag" );
+            fclose( file_max_dens );
+         }
+
+         if ( Aux_CheckFileExist(filename_center) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_center );
+         else
+         {
+            FILE *file_center = fopen( filename_center, "w" );
+            fprintf( file_center, "#%19s  %10s  %14s  %14s  %14s  %14s  %14s  %14s  %14s  %14s  %10s  %14s  %14s  %14s\n",
+                     "Time", "Step", "Dens", "Dens_x", "Dens_y", "Dens_z", "Pote", "Pote_x", "Pote_y", "Pote_z",
+                     "NIter", "CM_x", "CM_y", "CM_z" );
+            fclose( file_center );
+         }
+
+         FirstTime = false;
+      }
+
+      FILE *file_max_dens = fopen( filename_max_dens, "a" );
+      fprintf( file_max_dens, "%20.14e   %10ld   %14.7e   %14.7e   %14.7e\n",
+               Time[0], Step, recv[max_dens_rank][0], recv[max_dens_rank][1], recv[max_dens_rank][2] );
+      fclose( file_max_dens );
+
+      FILE *file_center = fopen( filename_center, "a" );
+      fprintf( file_center, "%20.14e  %10ld  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e",
+               Time[0], Step, recv[max_dens_rank][0], recv[max_dens_rank][3], recv[max_dens_rank][4], recv[max_dens_rank][5],
+                              recv[min_pote_rank][6], recv[min_pote_rank][7], recv[min_pote_rank][8], recv[min_pote_rank][9] );
+      fclose( file_center );
+   } // if ( MPI_Rank == 0 )
+
+
+// compute the center of mass until convergence
+   const double TolErrR2 = SQR( Soliton_CM_TolErrR );
+   const int    NIterMax = 10;
+
+   double dR2, CM_Old[3], CM_New[3];
+   int NIter = 0;
+
+// set an initial guess by the peak density position
+   if ( MPI_Rank == 0 )
+      for (int d=0; d<3; d++)    CM_Old[d] = recv[max_dens_rank][3+d];
+
+   MPI_Bcast( CM_Old, 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
+
+   while ( true )
+   {
+      GetCenterOfMass_Disc_Heating( CM_Old, CM_New, Soliton_CM_MaxR );
+
+      dR2 = SQR( CM_Old[0] - CM_New[0] )
+          + SQR( CM_Old[1] - CM_New[1] )
+          + SQR( CM_Old[2] - CM_New[2] );
+      NIter ++;
+
+      if ( dR2 <= TolErrR2  ||  NIter >= NIterMax )
+         break;
+      else
+         memcpy( CM_Old, CM_New, sizeof(double)*3 );
+   }
+
+   if ( MPI_Rank == 0 )
+   {
+      if ( dR2 > TolErrR2 )
+         Aux_Message( stderr, "WARNING : dR (%13.7e) > Soliton_CM_TolErrR (%13.7e) !!\n", sqrt(dR2), Soliton_CM_TolErrR );
+
+      FILE *file_center = fopen( filename_center, "a" );
+      fprintf( file_center, "  %10d  %14.7e  %14.7e  %14.7e\n", NIter, CM_New[0], CM_New[1], CM_New[2] );
+      fclose( file_center );
+   }
+
+
+   for (int d=0; d<3; d++)    Tidal_CM[d] = CM_New[d];
+
+
+   delete [] recv;
+
+} // FUNCTION : Record_EridanusII
+
+*/
+
+
+
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Disc_Heating
@@ -469,6 +817,30 @@ double Disc_Interpolation( const double RanM, const double R, const double DiscM
 
 #  endif
 # ifdef PARTICLE
+
+
+//-------------------------------------------------------------------------------------------------------
+//// Function    :  AddNewParticleAttribute_LSSHalo
+//// Description :  Add the problem-specific particle attributes
+////
+//// Note        :  1. Ref: https://github.com/gamer-project/gamer/wiki/Adding-New-Simulations#v-add-problem-specific-grid-fields-and-particle-attributes
+////                2. Invoke AddParticleField() for each of the problem-specific particle attribute:
+////                   --> Attribute label sent to AddParticleField() will be used as the output name of the attribute
+////                   --> Attribute index returned by AddParticleField() can be used to access the particle attribute data
+////                3. Pre-declared attribute indices are put in Field.h
+////
+//// Parameter   :  None
+////
+//// Return      :  None
+////-------------------------------------------------------------------------------------------------------
+void AddNewParticleAttribute_LSSHalo()
+{
+
+// "Idx_ParLabel" has been predefined in Field.h
+   if ( Idx_ParLabel == Idx_Undefined )  Idx_ParLabel = AddParticleAttribute( "ParLabel" );
+
+} // FUNCTION : AddNewParticleAttribute_LSSHalo
+
 void Init_Disc()
 {
 
@@ -490,6 +862,7 @@ void Init_Disc()
    real *Mass_AllRank   = NewParAtt[PAR_MASS];
    real *Pos_AllRank[3] = { NewParAtt[PAR_POSX], NewParAtt[PAR_POSY], NewParAtt[PAR_POSZ] };
    real *Vel_AllRank[3] = { NewParAtt[PAR_VELX], NewParAtt[PAR_VELY], NewParAtt[PAR_VELZ] };
+   real *Label_AllRank   = NewParAtt[Idx_ParLabel];
 
    if ( MPI_Rank == 0 )
    {
@@ -508,6 +881,9 @@ void Init_Disc()
          Time_AllRank[p] = 0;
 //       mass
          Mass_AllRank[p] = ParM;
+
+//       label
+         Label_AllRank[p] = p;
 
 //       position
          Ran  = RNG->GetValue( 0, 0.0, 1.0);
@@ -621,7 +997,7 @@ void Init_TestProb_ELBDM_LSSHalo()
    BC_User_Ptr                 = NULL;
    Flu_ResetByUser_Func_Ptr    = NULL;
    Output_User_Ptr             = NULL;
-   Aux_Record_User_Ptr         = NULL;
+   Aux_Record_User_Ptr         = NULL; //Record_Disc_Heating;
    End_User_Ptr                = NULL;
 #  ifdef GRAVITY
    Init_ExternalAcc_Ptr        = NULL;
@@ -629,7 +1005,7 @@ void Init_TestProb_ELBDM_LSSHalo()
 #  endif
 #  ifdef PARTICLE
    Par_Init_ByFunction_Ptr     = Par_Disc_Heating;         // option: PAR_INIT=1;            example: Particle/Par_Init_ByFunction.cpp
-   Par_Init_Attribute_User_Ptr = NULL;    // set PAR_NATT_USER;             example: TestProblem/Hydro/AGORA_IsolatedGalaxy/Init_TestProb_Hydro_AGORA_IsolatedGalaxy.cpp --> AddNewParticleAttribute()
+   Par_Init_Attribute_User_Ptr = AddNewParticleAttribute_LSSHalo;    // set PAR_NATT_USER;             example: TestProblem/Hydro/AGORA_IsolatedGalaxy/Init_TestProb_Hydro_AGORA_IsolatedGalaxy.cpp --> AddNewParticleAttribute()
    Init_User_Ptr               = Init_Disc;
 #  endif
 #  endif // if ( MODEL == ELBDM  &&  defined GRAVITY )
